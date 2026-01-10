@@ -43,7 +43,7 @@ class Parser:
         Parses input strings of various objects.
 
         Returns:
-            list: Abstract syntax tre in the form of a Python list.
+            list: Abstract syntax tree in the form of a Python list.
 
         Raises:
             EOFError: Unexpectedly reaches end of file.
@@ -109,4 +109,13 @@ class Parser:
         return num
 
 def scheme_parse(source: str) -> list:
+    """
+    Wrapper around parsing function for Scheme programs.
+
+    Args:
+        source (str): Scheme source program.
+
+    Returns:
+        list: Abstract syntax tree in the form of a Python list.
+    """
     return Parser(source).parse()

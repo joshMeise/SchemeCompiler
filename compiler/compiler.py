@@ -4,6 +4,16 @@
 # 01-09-2026
 # Description: 
 #
+# Questions:
+# - Should expr be a list or a value?
+#   - Thoughts are that compile takes an atomic value and compile_function takes a list (full parses expression).
+# - What does env refer to in function signature for compile()?
+#
+
+import enum
+import sys
+
+FIXNUM_SHIFT = 2
 
 class Compiler:
     """
@@ -23,7 +33,7 @@ class Compiler:
         self.code = []
         self.max_locals_count = 0
 
-    def compile(self, expr, env):
+    def compile(self, expr):
         """
 
         Args:
@@ -44,11 +54,39 @@ class Compiler:
         self.compile(expr)
         self.code.append(I.RETURN)
 
+    def write_to_stream(self, f: BinaryIO):
+        """
+        Writes instructions to file stream.
+
+        Args:
+            f (BinaryIO): File opened for writing in binrayr format.
+        """
+        for op in self.code:
+            f.write(op.to_bytes(8, "little"))
+
+def box_fixnum(val: int) -> int:
+    """
+    Implements pointer tagging scheme on integer values.
+    Shifts 2 bits to the right and makes least significant 2 bits 0b00.
+    
+    Args:
+        val (int): Integer vaue to be tagged.
+
+    Returns:
+        int: 64-bit tagged integer value.
+
+    Raises:
+        OverflowError: If integer value is larger than 2^62 - 1.
+    """
+    if val > 2**62 - 1:
+        raise OverflowError("Integer value larger than 2^62 - 1.")
+
+    return val << FIXNUM_SHIFT
 
 class I(enum.IntEnum):
     """
     Class for the enumeration of all different opcodes.
-
     """
     LOAD64 = enum.auto()
     RETURN = enum.auto()
+

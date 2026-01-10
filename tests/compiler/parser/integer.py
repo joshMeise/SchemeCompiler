@@ -33,6 +33,9 @@ class IntegerParseTests(unittest.TestCase):
 
         Args:
             source (str): Scheme source code to be parsed.
+
+        Returns:
+            list: Abstract syntax tree produced by parser.
         """
         return Parser(source).parse()
 
