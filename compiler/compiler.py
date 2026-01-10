@@ -11,7 +11,6 @@
 #
 
 import enum
-import sys
 
 FIXNUM_SHIFT = 2
 
