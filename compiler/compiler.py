@@ -34,9 +34,10 @@ class Compiler:
 
     def compile(self, expr):
         """
+        Compiles given expression into bytecode.
 
         Args:
-            
+            expr (): expression to be compiled.
         """
         emit = self.code.append
         match expr:
@@ -85,6 +86,8 @@ def box_fixnum(val: int) -> int:
 class I(enum.IntEnum):
     """
     Class for the enumeration of all different opcodes.
+
+    Starts at 1 and increments.
     """
     LOAD64 = enum.auto()
     RETURN = enum.auto()

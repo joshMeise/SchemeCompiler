@@ -10,15 +10,13 @@
 # TODO:
 # - Maybe add multiple integers?
 # - Add in tests of integers out of bounds (once bounds are determined).
-#
-# Questions:
-# - Currently expcts a return of a list.
+# - Update test for invalid character at beginning once implemented.
 #
 
 import unittest
 import sys
 import os
-sys.path.append(os.path.abspath("../../../compiler/"))
+sys.path.append(os.path.abspath("../../../../compiler/"))
 from parser import Parser
 
 class IntegerParseTests(unittest.TestCase):
@@ -43,25 +41,31 @@ class IntegerParseTests(unittest.TestCase):
         """
         Test valid integer value.
         """
-        self.assertEqual(self._parse("42"), [42])
+        self.assertEqual(self._parse("42"), 42)
 
     def test_leading_whitespace(self):
         """
         Tests valid integer value with leading whitespace.
         """
-        self.assertEqual(self._parse("     42"), [42])
+        self.assertEqual(self._parse("     42"), 42)
 
     def test_trailing_whitespace(self):
         """
         Tests valid integer with trailing whitespace.
         """
-        self.assertEqual(self._parse("42   "), [42])
+        self.assertEqual(self._parse("42   "), 42)
 
     def test_leading_trailing_whitespace(self):
         """
         Tests valid integer with both leading and trailing whitespace.
         """
-        self.assertEqual(self._parse("    42   "), [42])
+        self.assertEqual(self._parse("    42   "), 42)
+
+    def test_trailing_newline(self):
+        """
+        Tests valid integer with trailing newline.
+        """
+        self.assertEqual(self._parse("42\n"), 42)
 
     def test_eof_error(self):
         """
@@ -90,6 +94,13 @@ class IntegerParseTests(unittest.TestCase):
         """
         with self.assertRaises(TypeError):
             self._parse("42i")
+
+    def test_invalid_int_3(self):
+        """
+        Test integer with invalid character at beginning of integer.
+        """
+        with self.assertRaises(NotImplementedError):
+            self._parse("i42")
 
 if __name__ == '__main__':
     unittest.main()

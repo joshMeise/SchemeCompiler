@@ -9,10 +9,11 @@
 # 
 # Questions:
 # - Does our parse function always return a list?
+#   - I currently have it such that it is consistent witht he asignment where it returns an integer sometimes and a list sometimes.
 # - Does our parse function eventually loop through and parse the whole input?
 #
 
-WSP = [' ', '\n' '\t', '\r']
+WSP = [' ', '\n', '\t', '\r']
 
 class Parser:
     """
@@ -49,19 +50,14 @@ class Parser:
             EOFError: Unexpectedly reaches end of file.
             NotImplementedError: Non-integer value being parsed.
         """
-        ast = []
         self.skip_whitespace()
         match self.peek():
             case '':
                 raise EOFError("Unexpected end of input.")
             case c if c.isdigit():
-                val = self.parse_number()
+                return self.parse_number()
             case c:
                 raise NotImplementedError(f"Parser only supports numbers currently. Found {c}.")
-
-        ast.append(val)
-
-        return ast
 
     def peek(self) -> char:
         """
@@ -102,7 +98,7 @@ class Parser:
             num += int(self.source[self.pos])
             self.pos += 1
 
-        # If not whitespace, number is of invalid format.
+        # If not whitespace or ind of input, number is of invalid format.
         if not(self.peek() in WSP) and self.peek() != '':
             raise TypeError("Invalid number type.")
 

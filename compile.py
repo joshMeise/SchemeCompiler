@@ -21,7 +21,11 @@ def compile_program(input: StringIO, output: BinaryIO):
         input (StringIO): Scheme source code.
         output (BinaryIO): Binary file to write bytecode to.
     """
-    source = input.read()
+    # Read until newline if interactive input, else read until EOF.
+    if input.isatty():
+        source = input.readline()
+    else:
+        source = input.read()
     program = scheme_parse(source)
     compiler = Compiler()
     compiler.compile_function(program)
@@ -40,16 +44,16 @@ if __name__ == "__main__":
         compile_program(input, output)
     # Open files.
     elif len(sys.argv) == 3:
-        with open(sys.argv[1], "rb") as input, open(sys.argv[2], "wb") as output:
+        with open(sys.argv[1], "r") as input, open(sys.argv[2], "wb") as output:
             compile_program(input, output)
     # Check which argument was provided and open respctive files.
     elif len(sys.argv[1]) > 2 and sys.argv[1][-3:] == ".bc":
         input = sys.stdin
         with open(sys.argv[1], "wb") as output:
             compile_program(input, output)
-    elif len(sys.argv[1]) > 3 and sys.argv[1][-3:] == ".scm":
+    elif len(sys.argv[1]) > 3 and sys.argv[1][-4:] == ".scm":
         output = sys.stdout.buffer
-        with open(sys.argv[1], "rb") as intput:
+        with open(sys.argv[1], "r") as input:
             compile_program(input, output)
     else:
         print("usage: python3 compile.py [ input_file.scm ] [ output_file.bc ]")
