@@ -13,21 +13,30 @@
 #include "interpreter.h"
 #include <stdexcept>
 #include <span>
+#include <iostream>
+#include <format>
 
 #define BPB 8
-#define BPI 4
+#define BPI 8
 
-// Enumerations of opcodes.
-enum class OpCodes : uint64_t {
+// enumerations of opcodes.
+enum class OpCode : uint64_t {
     LOAD64 = 1,
     RETURN = 2
 };
 
 // Build insturction out of 4 bytes.
 static uint64_t word_from_bytes(std::span<uint8_t> slice) {
-    if (slice.size() != 4) throw std::invalid_argument("Argument must contain 4 bytes.\n");
+    uint64_t val;
+    int i;
+    
+    if (slice.size() != 8) throw std::invalid_argument("Argument must contain 8 bytes.\n");
 
-    return slice[0] | (slice[1] << BPB) | (slice[2] <<2*BPB) | (slice[3] << 3*BPB);
+    val = 0;
+    for (i = 0; i < BPI; i++)
+        val |= (slice[i] << i*BPB);
+    
+    return val;
 }
 
 // Default constructor.
@@ -37,6 +46,35 @@ Interpreter::Interpreter(void) {
 }
 
 // Interpret a program, return once it reaches a return instruction.
+uint64_t Interpreter::interpret(void) {
+    int val = 0;
+    for (auto& word : stack) {
+        std::cout << std::format("0x{:016X}\n", word);
+    }
+    /*
+    OpCode instr;
+    uint64_t word;
+
+    do {
+        // Read instruction from the stack.
+        word = readword();
+        
+        // Case value to instruction.
+        instr = static_cast<OpCode>(word);
+        
+        switch (instr) {
+            case OpCode::LOAD64:
+                break;
+            case OpCode::RETURN:
+                break;
+            default:
+                throw std::logic_error("Opcode not yet implemented");
+                break;
+        }
+    } while (instr != OpCode::RETURN);
+    */
+    return val;
+}
 
 // Construct interpreter based on a byte stream.
 Interpreter::Interpreter(std::vector<uint8_t>& bytes) {
