@@ -7,6 +7,8 @@
 
 import sys
 import os
+from io import StringIO
+from typing import BinaryIO
 sys.path.append(os.path.abspath("./compiler"))
 from compiler.compiler import Compiler
 from parser import *

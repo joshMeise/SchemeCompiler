@@ -82,7 +82,7 @@ Interpreter::Interpreter(std::vector<uint8_t>& bytes) {
     uint64_t word;
 
     // Add instructions to stack.
-    for (i = 0; i < bytes.size(); i+= BPI) {
+    for (i = 0; i < static_cast<int>(bytes.size()); i+= BPI) {
         word = word_from_bytes(std::span<uint8_t>(bytes.begin() + i, BPI));
         stack.push_back(word);
     }
