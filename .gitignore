@@ -1,2 +1,21 @@
+# Miscellaneous
 .nvim_backup/
+.dSYM
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+.env
+
+# C
+*.o
+*.out
+*.exe
+*.a
+*.so
+*.obj
+
