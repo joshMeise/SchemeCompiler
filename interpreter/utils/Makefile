@@ -1,5 +1,5 @@
 CXXFLAGS=-Wall -Wpedantic -std=c++20
-OFILES=interpreter.o
+OFILES=interpreter.o utilities.o
 CC=g++
 
 all: $(OFILES)

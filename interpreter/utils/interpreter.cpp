@@ -47,32 +47,32 @@ Interpreter::Interpreter(void) {
 
 // Interpret a program, return once it reaches a return instruction.
 uint64_t Interpreter::interpret(void) {
-    int val = 0;
-    for (auto& word : stack) {
-        std::cout << std::format("0x{:016X}\n", word);
-    }
-    /*
     OpCode instr;
-    uint64_t word;
+    uint64_t word, val;
 
     do {
-        // Read instruction from the stack.
-        word = readword();
+        // Read instruction.
+        word = read_word();
         
         // Case value to instruction.
         instr = static_cast<OpCode>(word);
         
         switch (instr) {
             case OpCode::LOAD64:
+                // Get the next word from the code and push onto the stack.
+                word = read_word();
+                push(word);
                 break;
             case OpCode::RETURN:
+                // Pop a value from stack and return the value.
+                val = pop();
                 break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
                 break;
         }
     } while (instr != OpCode::RETURN);
-    */
+
     return val;
 }
 
@@ -81,10 +81,10 @@ Interpreter::Interpreter(std::vector<uint8_t>& bytes) {
     int i;
     uint64_t word;
 
-    // Add instructions to stack.
+    // Add instructions to vector contsining code.
     for (i = 0; i < static_cast<int>(bytes.size()); i+= BPI) {
         word = word_from_bytes(std::span<uint8_t>(bytes.begin() + i, BPI));
-        stack.push_back(word);
+        code.push_back(word);
     }
 
     // Initialize program counter.
@@ -92,6 +92,21 @@ Interpreter::Interpreter(std::vector<uint8_t>& bytes) {
 }
 
 // Get instruction from stack.
-uint64_t Interpreter::readword(void) {
-    return stack[pc++];
+uint64_t Interpreter::read_word(void) {
+    return code[pc++];
+}
+
+// Push value onto stack.
+void Interpreter::push(uint64_t val) {
+    stack.push(val);
+}
+
+// Pop value from stack.
+uint64_t Interpreter::pop(void) {
+    uint64_t val;
+
+    val = stack.top();
+    stack.pop();
+
+    return val;
 }

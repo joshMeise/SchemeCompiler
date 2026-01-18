@@ -11,6 +11,7 @@
 #include <stack>
 #include <cstdint>
 #include <vector>
+#include <stack>
 
 class Interpreter {
 public:
@@ -25,9 +26,16 @@ public:
 
 private:
     // Member variables.
-    std::vector<uint64_t> stack;
+    std::vector<uint64_t> code;
+    std::stack<uint64_t> stack;
     int pc;
 
-    // Get instruction from stack.
-    uint64_t readword(void);
+    // Get instruction.
+    uint64_t read_word(void);
+
+    // Push value onto stack.
+    void push(uint64_t val);
+
+    // Pop value from stack.
+    uint64_t pop(void);
 };
