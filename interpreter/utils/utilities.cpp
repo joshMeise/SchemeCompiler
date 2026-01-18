@@ -113,7 +113,7 @@ int parse_args(int argc, char** argv, std::ifstream& ifile, std::istream*& input
  *
  */
 void print_val(uint64_t val, std::ostream*& output) {
-    if (((val >> FIXNUM_SHIFT) & FIXNUM_MASK) == FIXNUM_TAG)
+    if ((val & FIXNUM_MASK) == FIXNUM_TAG)
         *output << (val >> FIXNUM_SHIFT) << std::endl;
     else
         *output << "Error.\n";
