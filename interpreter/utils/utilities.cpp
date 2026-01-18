@@ -10,6 +10,13 @@
 #include "utilities.h"
 
 /*
+ * Define shift, mask, and tag values for all types.
+ */
+#define FIXNUM_MASK 3
+#define FIXNUM_TAG 0
+#define FIXNUM_SHIFT 2
+
+/*
  * Parses program arguments and sets input and output.
  * Defaults to setting input to stdin and output to stdout unless input/output file(s) specified as arguments to main().
  *
@@ -106,6 +113,8 @@ int parse_args(int argc, char** argv, std::ifstream& ifile, std::istream*& input
  *
  */
 void print_val(uint64_t val, std::ostream*& output) {
-
-    *output << "HI\n";
+    if (((val >> FIXNUM_SHIFT) & FIXNUM_MASK) == FIXNUM_TAG)
+        *output << (val >> FIXNUM_SHIFT) << std::endl;
+    else
+        *output << "Error.\n";
 }
