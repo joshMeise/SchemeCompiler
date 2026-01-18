@@ -3,11 +3,11 @@ name: Tests
 on:
   push: 
     branches: [ "main" ]
-  pull-request:
+  pull_request:
     branches: [ "main" ]
 
 jobs:
-  test-parser:
+  test-parser-and-compiler:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,4 +19,5 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name
+      - name: Run parser and compiler tests
+        run: python3 -m unittest discover -s tests
