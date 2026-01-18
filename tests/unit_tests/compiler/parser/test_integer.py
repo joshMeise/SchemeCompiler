@@ -16,8 +16,7 @@
 import unittest
 import sys
 import os
-sys.path.append(os.path.abspath("../../../../compiler/"))
-from parser import Parser
+from compiler.parser import Parser
 
 class IntegerParseTests(unittest.TestCase):
     """
