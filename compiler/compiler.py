@@ -11,6 +11,7 @@
 #
 
 import enum
+from typing import BinaryIO
 
 FIXNUM_SHIFT = 2
 

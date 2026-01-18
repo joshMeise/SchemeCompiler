@@ -59,12 +59,12 @@ class Parser:
             case c:
                 raise NotImplementedError(f"Parser only supports numbers currently. Found {c}.")
 
-    def peek(self) -> char:
+    def peek(self) ->str:
         """
         Get character at the front of input string.
 
         Returns:
-            char: Character at front of input string.
+            str: Character at front of input string.
         """
         # Return no character if end of input has been reached.
         if self.pos == self.length:

@@ -16,7 +16,7 @@ from io import BytesIO
 import unittest
 import sys
 import os
-sys.path.append(os.path.abspath("../../../compiler/"))
+sys.path.append(os.path.abspath("../../../../compiler"))
 from compiler import Compiler
 
 class IntegerParseTests(unittest.TestCase):
