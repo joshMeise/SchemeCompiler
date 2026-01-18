@@ -1,4 +1,4 @@
-# integer.py - tests integer compiling
+# test_integer.py - tests integer compiling
 #
 # Josh Meise
 # 01-09-2026

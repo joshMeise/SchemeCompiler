@@ -1,4 +1,4 @@
-# integer.py - tests integer parsing
+# test_integer.py - tests integer parsing
 #
 # Josh Meise
 # 01-09-2026
