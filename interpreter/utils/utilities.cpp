@@ -19,6 +19,9 @@
 #define BOOL_MASK 127
 #define BOOL_TAG 31
 #define BOOL_SHIFT 7
+#define CHAR_MASK 255
+#define CHAR_TAG 15
+#define CHAR_SHIFT 8
 
 /*
  * Parses program arguments and sets input and output.
@@ -123,6 +126,9 @@ void print_val(uint64_t val, std::ostream*& output) {
         if (val >> BOOL_SHIFT == 1) *output << "#t" << std::endl;
         else if (val >> BOOL_SHIFT == 0) *output << "#f" << std::endl;
         else *output << "Error.\n";
-    else
+    else if ((val & CHAR_MASK) == CHAR_TAG) {
+        if ((val >> CHAR_SHIFT) == '\n') *output << "#\\newline\n";
+        else *output << std::format("#\\{:c}\n", (val >> CHAR_SHIFT));
+    } else
         *output << "Error.\n";
 }

@@ -47,6 +47,12 @@ class CharacterParseTests(unittest.TestCase):
         """
         self.assertEqual(self._parse("#\\\n"), '\n')
 
+    def test_double_quote(self):
+        """
+        Test '"'.
+        """
+        self.assertEqual(self._parse("#\\\""), '\"')
+
     def test_illegal(self):
         """
         Test '`'.
