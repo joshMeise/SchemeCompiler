@@ -1,4 +1,4 @@
-# test_integer.py - tests integer parsing
+# test_parser_integer.py - tests integer parsing
 #
 # Josh Meise
 # 01-09-2026
@@ -23,7 +23,7 @@ class IntegerParseTests(unittest.TestCase):
     Unit testing framework for the parsing of integers.
     """
 
-    def _parse(self, source: str) -> list:
+    def _parse(self, source: str) -> int:
         """
         Parses the provided Scheme source code.
         Wrapper around Parser class' parse() function.
