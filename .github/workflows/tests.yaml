@@ -22,61 +22,61 @@ jobs:
       - name: Run parser tests
         run: python3 -m unittest discover -s tests -p "test_parser*"
 
-    test-compiler:
-      needs: [test-parser]
-      runs-on: ubuntu-latest
+  test-compiler:
+    needs: [test-parser]
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.11"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-        - name: Run compiler tests
-          run: python3 -m unittest discover -s tests -p "test_compiler*"
+      - name: Run compiler tests
+        run: python3 -m unittest discover -s tests -p "test_compiler*"
 
-    build-interpreter:
-      runs-on: ubuntu-latest
+  build-interpreter:
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: Build interpreter utils
-          working-directory: interpreter/utils
-          run: |
-            make clean
-            make
+      - name: Build interpreter utils
+        working-directory: interpreter/utils
+        run: |
+          make clean
+          make
 
-        - name: Build interpreter executable
-          working-directory: interpreter/execs
-          run: |
-            make clean
-            make
+      - name: Build interpreter executable
+        working-directory: interpreter/execs
+        run: |
+          make clean
+          make
 
-        - name: Clean interpreter utils
-          working-directory: interpreter/utils
-          run: make clean
+      - name: Clean interpreter utils
+        working-directory: interpreter/utils
+        run: make clean
 
-        - name: Clean interpreter executable
-          working-directory: interpreter/execs
-          run: make clean
-    
-    test-interpreter:
-      needs: [build-interpreter]
-      runs-on: ubuntu-latest
+      - name: Clean interpreter executable
+        working-directory: interpreter/execs
+        run: make clean
+  
+  test-interpreter:
+    needs: [build-interpreter]
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.11"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-        - name: Run interpreter tests
-          run: python3 -m unittest discover -s tests -p "test_interpreter*"
+      - name: Run interpreter tests
+        run: python3 -m unittest discover -s tests -p "test_interpreter*"
