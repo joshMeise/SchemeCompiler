@@ -19,6 +19,9 @@ FIXNUM_MASK = 3
 BOOL_SHIFT = 7
 BOOL_TAG = 31
 BOOL_MASK = 127
+CHAR_SHIFT = 8
+CHAR_TAG = 15
+CHAR_MASK = 255
 
 class Compiler:
     """
@@ -53,6 +56,9 @@ class Compiler:
             case int(_):
                 emit(I.LOAD64)
                 emit(box_fixnum(expr))
+            case str(_):
+                emit(I.LOAD64)
+                emit(box_char(expr))
     
     def compile_function(self, expr):
         """
@@ -96,7 +102,7 @@ def box_bool(val: bool) -> int:
     """
     Implements pointer tagging scheme on boolean values.
     True is 1 and false is 0.
-    Shifts 8 bits to the right and makes least significant 8 bits 0b001111.
+    Shifts 7 bits to the right and makes least significant 7 bits 0b001111.
     
     Args:
         val (bool): Boolean value to be tagged.
@@ -108,6 +114,20 @@ def box_bool(val: bool) -> int:
         return ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG
     elif val == False:
         return ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG
+
+def box_char(val: str) -> int:
+    """
+    Implements pointer tagging scheme on character values.
+    Shifts 8 bits to the right and makes least significant 8 bits 0b00001111.
+    
+    Args:
+        val (str): Character value to be tagged.
+
+    Returns:
+        int: 64-bit tagged character value.
+    """
+
+    return ((ord(val) << CHAR_SHIFT) & ~CHAR_MASK) | CHAR_TAG
 
 class I(enum.IntEnum):
     """

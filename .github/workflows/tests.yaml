@@ -73,6 +73,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Build interpreter utils
+        working-directory: interpreter/utils
+        run: |
+          make clean
+          make
+
+      - name: Build interpreter executable
+        working-directory: interpreter/execs
+        run: |
+          make clean
+          make
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -80,3 +92,11 @@ jobs:
 
       - name: Run interpreter tests
         run: python3 -m unittest discover -s tests -p "test_interpreter*"
+
+      - name: Clean interpreter utils
+        working-directory: interpreter/utils
+        run: make clean
+
+      - name: Clean interpreter executable
+        working-directory: interpreter/execs
+        run: make clean

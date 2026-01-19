@@ -8,12 +8,14 @@
 # -Implement bounds checking on integers.
 # 
 # Questions:
-# - Does our parse function always return a list?
-#   - I currently have it such that it is consistent witht he asignment where it returns an integer sometimes and a list sometimes.
 # - Does our parse function eventually loop through and parse the whole input?
+# - Should we be able to parse #\newline and equivalent escape sequances as characters?
 #
 
+from typing import Union
+
 WSP = [' ', '\n', '\t', '\r']
+ILLEGAL_CHARS = ['`']
 
 class Parser:
     """
@@ -57,9 +59,9 @@ class Parser:
             case c if c.isdigit():
                 return self.parse_number()
             case c if c == '#':
-                return self.parse_boolean()
+                return self.parse_boolean_or_char()
             case c:
-                raise NotImplementedError(f"Parser only supports numbers and boleans. Found {c}.")
+                raise NotImplementedError(f"Found {c}.")
 
     def peek(self) ->str:
         """
@@ -106,31 +108,75 @@ class Parser:
 
         return num
 
-    def parse_boolean(self) -> bool:
+    def parse_boolean_or_char(self) -> Union[str, bool]:
         """
-        Parses boolean values from string.
+        Parses boolean or character value from string.
 
         Returns:
             bool: Boolean value of string that has been parsed.
+            str: Character value that was parsed.
 
         Raises:
-            TypeError: Non-boolean found in string starting with #.
+            TypeError: Non-boolean or non-character found in string starting with #.
         """
         # Skip over '#'.
         self.pos += 1
         
+        if self.peek() == 't' or self.peek() == 'T' or self.peek() == 'f' or self.peek() == 'F':
+            return self.parse_boolean()
+        elif self.peek() == '\\':
+            return self.parse_char()
+        else:
+            raise TypeError("Invalid boolean or character type.")
+
+    def parse_boolean(self) -> bool:
+        """
+        Parses boolean value from string.
+
+        Returns:
+            bool: Boolean value that has been parsed.
+
+        Raises:
+            TypeError: Non-boolean value found in string.
+        """
         if self.peek() == 't' or self.peek() == 'T':
             ret_val = True
         elif self.peek() == 'f' or self.peek() == 'F':
             ret_val = False
         else:
             raise TypeError("Invalid boolean type.")
-
+        
         self.pos += 1
-    
-        # If not whitespace or ind of input, boolean is of invalid format.
+
+        # If not whitespace or ind of input, number is of invalid format.
         if not(self.peek() in WSP) and self.peek() != '':
             raise TypeError("Invalid boolean type.")
+
+        return ret_val
+
+    def parse_char(self) -> str:
+        """
+        Parses character value from string.
+
+        Returns:
+            str: Character value that has been parsed.
+
+        Raises:
+            TypeError: Non-character value or illegal character value found in string.
+        """
+        # Skip over backslash.
+        self.pos += 1
+
+        if self.peek() in ILLEGAL_CHARS:
+            raise TypeError("Illegal character.")
+    
+        ret_val = self.peek()
+        
+        self.pos += 1
+
+        # If not whitespace or ind of input, number is of invalid format.
+        if not(self.peek() in WSP) and self.peek() != '':
+            raise TypeError("Invalid character type.")
 
         return ret_val
 

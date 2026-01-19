@@ -18,7 +18,7 @@ import sys
 import os
 from compiler.compiler import Compiler
 
-class IntegerParseTests(unittest.TestCase):
+class IntegerCompileTests(unittest.TestCase):
     """
     Unit testing framework for the compiling of integers.
     """

@@ -13,8 +13,6 @@ import sys
 import os
 import subprocess
 
-INTERPRETER_UTILS_DIR = "./interpreter/utils/"
-INTERPRETER_EXECS_DIR = "./interpreter/execs/"
 INTERPRET = "./interpreter/execs/interpret"
 
 class BooleanInterpreterTests(unittest.TestCase):
@@ -32,28 +30,9 @@ class BooleanInterpreterTests(unittest.TestCase):
         Returns:
             str: String value output by interpreter.
         """
-        make_utils = subprocess.run(["make clean; make"], cwd = INTERPRETER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-        make_execs = subprocess.run(["make clean; make"], cwd = INTERPRETER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-    
-        if make_utils.returncode != 0:
-            print("Failed to build interpreter library.")
-    
-        if make_execs.returncode != 0:
-            print("Failed to build interpreter executables.")
-
         inter = subprocess.Popen([INTERPRET], stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
         stdout, stderr = inter.communicate(source)
-
-        # Clean interpreter.
-        clean_utils = subprocess.run(["make clean"], cwd = INTERPRETER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-        clean_execs = subprocess.run(["make clean"], cwd = INTERPRETER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-    
-        if clean_utils.returncode != 0:
-            print("Failed to clean interpreter library.")
-    
-        if clean_execs.returncode != 0:
-            print("Failed to clean interpreter executables.")
 
         return stdout.decode("utf-8")
 
