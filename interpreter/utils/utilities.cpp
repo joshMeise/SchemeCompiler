@@ -8,6 +8,7 @@
  */
 
 #include "utilities.h"
+#include <format>
 
 /*
  * Define shift, mask, and tag values for all types.
@@ -15,6 +16,9 @@
 #define FIXNUM_MASK 3
 #define FIXNUM_TAG 0
 #define FIXNUM_SHIFT 2
+#define BOOL_MASK 127
+#define BOOL_TAG 31
+#define BOOL_SHIFT 7
 
 /*
  * Parses program arguments and sets input and output.
@@ -115,6 +119,10 @@ int parse_args(int argc, char** argv, std::ifstream& ifile, std::istream*& input
 void print_val(uint64_t val, std::ostream*& output) {
     if ((val & FIXNUM_MASK) == FIXNUM_TAG)
         *output << (val >> FIXNUM_SHIFT) << std::endl;
+    else if ((val & BOOL_MASK) == BOOL_TAG)
+        if (val >> BOOL_SHIFT == 1) *output << "#t" << std::endl;
+        else if (val >> BOOL_SHIFT == 0) *output << "#f" << std::endl;
+        else *output << "Error.\n";
     else
         *output << "Error.\n";
 }

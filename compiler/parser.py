@@ -39,12 +39,12 @@ class Parser:
         self.pos = 0
         self.length = len(source)
 
-    def parse(self) -> list:
+    def parse(self):
         """
         Parses input strings of various objects.
 
         Returns:
-            list: Abstract syntax tree in the form of a Python list.
+            Atomic element or abstract syntax tree in the form of a Python list.
 
         Raises:
             EOFError: Unexpectedly reaches end of file.
@@ -56,8 +56,10 @@ class Parser:
                 raise EOFError("Unexpected end of input.")
             case c if c.isdigit():
                 return self.parse_number()
+            case c if c == '#':
+                return self.parse_boolean()
             case c:
-                raise NotImplementedError(f"Parser only supports numbers currently. Found {c}.")
+                raise NotImplementedError(f"Parser only supports numbers and boleans. Found {c}.")
 
     def peek(self) ->str:
         """
@@ -103,6 +105,34 @@ class Parser:
             raise TypeError("Invalid number type.")
 
         return num
+
+    def parse_boolean(self) -> bool:
+        """
+        Parses boolean values from string.
+
+        Returns:
+            bool: Boolean value of string that has been parsed.
+
+        Raises:
+            TypeError: Non-boolean found in string starting with #.
+        """
+        # Skip over '#'.
+        self.pos += 1
+        
+        if self.peek() == 't' or self.peek() == 'T':
+            ret_val = True
+        elif self.peek() == 'f' or self.peek() == 'F':
+            ret_val = False
+        else:
+            raise TypeError("Invalid boolean type.")
+
+        self.pos += 1
+    
+        # If not whitespace or ind of input, boolean is of invalid format.
+        if not(self.peek() in WSP) and self.peek() != '':
+            raise TypeError("Invalid boolean type.")
+
+        return ret_val
 
 def scheme_parse(source: str) -> list:
     """

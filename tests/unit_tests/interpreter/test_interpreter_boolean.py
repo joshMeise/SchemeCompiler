@@ -1,4 +1,4 @@
-# test_interpterer_integer.py - tests integer interpretation
+# test_interpterer_boolena.py - tests boolean interpretation
 #
 # Josh Meise
 # 01-09-2026
@@ -17,12 +17,12 @@ INTERPRETER_UTILS_DIR = "./interpreter/utils/"
 INTERPRETER_EXECS_DIR = "./interpreter/execs/"
 INTERPRET = "./interpreter/execs/interpret"
 
-class IntegerInterpreterTests(unittest.TestCase):
+class BooleanInterpreterTests(unittest.TestCase):
     """
-    Unit testing framework for interpreting integers.
+    Unit testing framework for interpreting booleans.
     """
 
-    def _interpret(self, source: bytes) -> int:
+    def _interpret(self, source: bytes) -> str:
         """
         Calls interpreter and interprets byte code.
 
@@ -30,7 +30,7 @@ class IntegerInterpreterTests(unittest.TestCase):
             source (bytes): Bytecode to be interpreted.
 
         Returns:
-            int: Integer value output by interpreter.
+            str: String value output by interpreter.
         """
         make_utils = subprocess.run(["make clean; make"], cwd = INTERPRETER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
         make_execs = subprocess.run(["make clean; make"], cwd = INTERPRETER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
@@ -55,27 +55,19 @@ class IntegerInterpreterTests(unittest.TestCase):
         if clean_execs.returncode != 0:
             print("Failed to clean interpreter executables.")
 
-        return int(stdout.decode("utf-8"))
+        return stdout.decode("utf-8")
 
-    def test_pass_4(self):
+    def test_true(self):
         """
-        Test valid integer value of 4.
+        Test true value.
         """
-        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), 4)
+        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x9F\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "#t\n")
 
-    def test_pass_1(self):
+    def test_false(self):
         """
-        Test valid integer value of 1.
+        Test false value.
         """
-        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), 1)
-
-    def test_pass_0(self):
-        """
-        Test valid integer value of 4.
-        """
-        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), 0)
-
-
+        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x1F\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "#f\n")
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,6 +14,11 @@ import enum
 from typing import BinaryIO
 
 FIXNUM_SHIFT = 2
+FIXNUM_TAG = 0
+FIXNUM_MASK = 3
+BOOL_SHIFT = 7
+BOOL_TAG = 31
+BOOL_MASK = 127
 
 class Compiler:
     """
@@ -42,10 +47,13 @@ class Compiler:
         """
         emit = self.code.append
         match expr:
+            case bool(_):
+                emit(I.LOAD64)
+                emit(box_bool(expr))
             case int(_):
                 emit(I.LOAD64)
                 emit(box_fixnum(expr))
-
+    
     def compile_function(self, expr):
         """
 
@@ -82,7 +90,24 @@ def box_fixnum(val: int) -> int:
     if val > 2**62 - 1:
         raise OverflowError("Integer value larger than 2^62 - 1.")
 
-    return val << FIXNUM_SHIFT
+    return ((val << FIXNUM_SHIFT) & ~FIXNUM_MASK) | FIXNUM_TAG
+
+def box_bool(val: bool) -> int:
+    """
+    Implements pointer tagging scheme on boolean values.
+    True is 1 and false is 0.
+    Shifts 8 bits to the right and makes least significant 8 bits 0b001111.
+    
+    Args:
+        val (bool): Boolean value to be tagged.
+
+    Returns:
+        int: 64-bit tagged boolean value.
+    """
+    if val == True:
+        return ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG
+    elif val == False:
+        return ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG
 
 class I(enum.IntEnum):
     """
