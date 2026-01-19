@@ -58,8 +58,10 @@ class Parser:
                 raise EOFError("Unexpected end of input.")
             case c if c.isdigit():
                 return self.parse_number()
-            case c if c == '#':
+            case '#':
                 return self.parse_boolean_or_char()
+            case '(':
+                return self.parse_expression()
             case c:
                 raise NotImplementedError(f"Found {c}.")
 
@@ -85,6 +87,45 @@ class Parser:
         while self.peek() in WSP:
             self.pos += 1
 
+    def parse_expression(self) -> list:
+        """
+        Parses expression from string.
+
+        Returns:
+            list: Atomic values of expression that have been parsed.
+
+        Raises:
+            TypeError: Invalid expression.
+            NotImplementedError: Parse function for type not yet implemented.
+        """
+        # Consume opening parens.
+        self.pos += 1
+
+        match self.peek():
+            case ')':
+                return self.parse_empty_list()
+            case c:
+                raise NotImplementedError(f"Found {c}.")
+
+    def parse_empty_list(self) -> list:
+        """
+        Parses empty list.
+
+        Returns:
+            list: Empty list.
+
+        Raises:
+            TypeError: Invalid empty list.
+        """
+        # Consume closing parens.
+        self.pos += 1
+
+        # If not whitespace or end of input, empty list is of invalid format.
+        if not(self.peek() in WSP) and self.peek() != '':
+            raise TypeError("Invalid list type.")
+
+        return []
+
     def parse_number(self) -> int:
         """
         Parses positive integer values from digit string.
@@ -102,7 +143,7 @@ class Parser:
             num += int(self.source[self.pos])
             self.pos += 1
 
-        # If not whitespace or ind of input, number is of invalid format.
+        # If not whitespace or end of input, number is of invalid format.
         if not(self.peek() in WSP) and self.peek() != '':
             raise TypeError("Invalid number type.")
 

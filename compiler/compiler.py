@@ -22,6 +22,9 @@ BOOL_MASK = 127
 CHAR_SHIFT = 8
 CHAR_TAG = 15
 CHAR_MASK = 255
+EMPTY_LIST_SHIFT = 8
+EMPTY_LIST_TAG = 47
+EMPTY_LIST_MASK = 255
 
 class Compiler:
     """
@@ -59,6 +62,9 @@ class Compiler:
             case str(_):
                 emit(I.LOAD64)
                 emit(box_char(expr))
+            case []:
+                emit(I.LOAD64)
+                emit(box_empty_list())
     
     def compile_function(self, expr):
         """
@@ -128,6 +134,17 @@ def box_char(val: str) -> int:
     """
 
     return ((ord(val) << CHAR_SHIFT) & ~CHAR_MASK) | CHAR_TAG
+
+def box_empty_list() -> int:
+    """
+    Implements pointer tagging scheme on empty list.
+    Shifts 8 bits to the right and makes least significant 8 bits 0b00101111.
+    
+    Returns:
+        int: 64-bit tagged list value.
+    """
+
+    return ((0 << EMPTY_LIST_SHIFT) & ~EMPTY_LIST_MASK) | EMPTY_LIST_TAG
 
 class I(enum.IntEnum):
     """

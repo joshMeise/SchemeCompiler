@@ -22,6 +22,8 @@
 #define CHAR_MASK 255
 #define CHAR_TAG 15
 #define CHAR_SHIFT 8
+#define EMPTY_LIST_MASK 255
+#define EMPTY_LIST_TAG 47
 
 /*
  * Parses program arguments and sets input and output.
@@ -129,6 +131,8 @@ void print_val(uint64_t val, std::ostream*& output) {
     else if ((val & CHAR_MASK) == CHAR_TAG) {
         if ((val >> CHAR_SHIFT) == '\n') *output << "#\\newline\n";
         else *output << std::format("#\\{:c}\n", (val >> CHAR_SHIFT));
-    } else
+    } 
+    else if ((val & EMPTY_LIST_MASK) == EMPTY_LIST_TAG) *output << "()\n";
+    else
         *output << "Error.\n";
 }
