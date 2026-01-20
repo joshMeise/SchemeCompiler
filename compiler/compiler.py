@@ -174,7 +174,7 @@ def box_char(val: str) -> int:
     Shifts 8 bits to the right and makes least significant 8 bits 0b00001111.
     
     Args:
-        val (str): Character value to be tagged. In the form of #\<char>
+        val (str): Character value to be tagged. In the form of <character>
 
     Returns:
         int: 64-bit tagged character value.
@@ -220,4 +220,3 @@ class I(enum.IntEnum):
     LEQ = enum.auto()
     GEQ = enum.auto()
     EQ = enum.auto()
-

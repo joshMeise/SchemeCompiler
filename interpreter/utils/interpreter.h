@@ -65,4 +65,7 @@ private:
 
     // Check if top value on stack is boolean.
     void is_bool(void);
+
+    // Add values on stack leaving result on stack.
+    void plus(void);
 };

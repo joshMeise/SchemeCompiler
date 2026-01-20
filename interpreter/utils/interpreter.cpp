@@ -39,7 +39,8 @@ enum class OpCode : uint64_t {
     IS_ZERO = 8,
     NOT = 9,
     IS_INT = 10,
-    IS_BOOL = 11
+    IS_BOOL = 11,
+    PLUS = 12
 };
 
 // Build insturction out of 4 bytes.
@@ -119,6 +120,10 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::IS_BOOL:
                 // Check if value is a boolean and push true if so, false otherwise.
                 is_bool();
+                break;
+            case OpCode::PLUS:
+                // Add values that are currenty on stack. Leave result on stack.
+                plus();
                 break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
@@ -235,4 +240,20 @@ void Interpreter::is_bool(void) {
         stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
     else
         stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+}
+
+// Add values on stack leaving result on stack.
+void Interpreter::plus(void) {
+    uint64_t val;
+
+    while (stack.size() > 1) {
+        // Save top value in stack.
+        val = stack.top();
+
+        // Remove top element of stack.
+        stack.pop();
+
+        // Add removed value to top value on stack.
+        stack.top() += val;
+    }
 }
