@@ -50,4 +50,19 @@ private:
 
     // Convert top value on stack from character to integer by adjusting tag
     void char_to_int(void);
+
+    // Check if top value on stack is 0.
+    void is_zero(void);
+
+    // Check if top value on stack is ().
+    void is_null(void);
+
+    // Converts top value on stack to falsy if truthy and to truthy if falsy.
+    void invert(void);
+
+    // Check if top value on stack is integer.
+    void is_int(void);
+
+    // Check if top value on stack is boolean.
+    void is_bool(void);
 };

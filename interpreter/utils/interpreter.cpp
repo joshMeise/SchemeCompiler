@@ -21,6 +21,11 @@
 #define CHAR_SHIFT 8
 #define CHAR_MASK 255
 #define CHAR_TAG 15
+#define BOOL_SHIFT 7
+#define BOOL_MASK 127
+#define BOOL_TAG 31
+#define EMPTY_LIST_MASK 255
+#define EMPTY_LIST_TAG 47
 
 // enumerations of opcodes.
 enum class OpCode : uint64_t {
@@ -29,7 +34,12 @@ enum class OpCode : uint64_t {
     ADD1 = 3,
     SUB1 = 4,
     INT_TO_CHAR = 5,
-    CHAR_TO_INT = 6
+    CHAR_TO_INT = 6,
+    IS_NULL = 7,
+    IS_ZERO = 8,
+    NOT = 9,
+    IS_INT = 10,
+    IS_BOOL = 11
 };
 
 // Build insturction out of 4 bytes.
@@ -89,6 +99,26 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::CHAR_TO_INT:
                 // Convert to integer.
                 char_to_int();
+                break;
+            case OpCode::IS_NULL:
+                // Check if top value on stack is ().
+                is_null();
+                break;
+            case OpCode::IS_ZERO:
+                // Check if value is 0 and push true if so, false otherwise.
+                is_zero();
+                break;
+            case OpCode::NOT:
+                // Convert truthy to falsya dn vice versa.
+                invert();
+                break;
+            case OpCode::IS_INT:
+                // Check if value is an integer and push true if so, false otherwise.
+                is_int();
+                break;
+            case OpCode::IS_BOOL:
+                // Check if value is a boolean and push true if so, false otherwise.
+                is_bool();
                 break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
@@ -162,3 +192,47 @@ void Interpreter::char_to_int(void) {
     stack.top() |= FIXNUM_TAG;
 }
 
+// Check if top value on stack is 0.
+void Interpreter::is_zero(void) {
+    // If top value is 0, convert to true, else convert to false.
+    if (stack.top() >> FIXNUM_SHIFT == 0)
+        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    else
+        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+}
+
+// Check if top value on stack is ().
+void Interpreter::is_null(void) {
+    // If top value is (), convert to true, else convert to false.
+    if ((stack.top() & EMPTY_LIST_MASK) == EMPTY_LIST_TAG)
+        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    else
+        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+}
+
+// Converts top value on stack to falsy if truthy and to truthy if falsy.
+void Interpreter::invert(void) {
+    // The boolean value false is the onl true false value.
+    if (((stack.top() & BOOL_MASK) == BOOL_TAG) && ((stack.top() >> BOOL_SHIFT) == 0))
+        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    else
+        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+}
+
+// Check if top value on stack is integer.
+void Interpreter::is_int(void) {
+    // If top value is an integer, convert to true, else convert to false.
+    if ((stack.top() & FIXNUM_MASK) == FIXNUM_TAG)
+        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    else
+        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+}
+
+// Check if top value on stack is boolean.
+void Interpreter::is_bool(void) {
+    // If top value is a boolean, convert to true, else convert to false.
+    if ((stack.top() & BOOL_MASK) == BOOL_TAG)
+        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    else
+        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+}
