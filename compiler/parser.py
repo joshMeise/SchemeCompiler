@@ -219,7 +219,7 @@ class Parser:
         if not(self.peek() in WSP) and self.peek() != '':
             raise TypeError("Invalid character type.")
 
-        return ret_val
+        return "#\\" + ret_val
 
 def scheme_parse(source: str) -> list:
     """

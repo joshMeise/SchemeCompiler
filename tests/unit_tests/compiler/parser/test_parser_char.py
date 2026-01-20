@@ -33,25 +33,25 @@ class CharacterParseTests(unittest.TestCase):
         """
         Test 'a'.
         """
-        self.assertEqual(self._parse("#\\a"), 'a')
+        self.assertEqual(self._parse("#\\a"), '#\\a')
 
     def test_A(self):
         """
         Test 'A'.
         """
-        self.assertEqual(self._parse("#\\A"), 'A')
+        self.assertEqual(self._parse("#\\A"), '#\\A')
 
     def test_newline(self):
         """
         Test '\n'.
         """
-        self.assertEqual(self._parse("#\\\n"), '\n')
+        self.assertEqual(self._parse("#\\\n"), '#\\\n')
 
     def test_double_quote(self):
         """
         Test '"'.
         """
-        self.assertEqual(self._parse("#\\\""), '\"')
+        self.assertEqual(self._parse("#\\\""), '#\\\"')
 
     def test_illegal(self):
         """

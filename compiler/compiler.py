@@ -49,9 +49,10 @@ class Compiler:
         Compiles given expression into bytecode.
 
         Args:
-            expr (): expression to be compiled.
+            expr: Expression to be compiled.
         """
         emit = self.code.append
+
         match expr:
             case bool(_):
                 emit(I.LOAD64)
@@ -62,15 +63,27 @@ class Compiler:
             case str(_):
                 emit(I.LOAD64)
                 emit(box_char(expr))
+            case [only]:
+                self.compile(only)
+            case [first, *rest]:
+                match first:
+                    # Compile inner lists (functions) first.
+                    case [_, *_]:
+                        self.compile_function(first)
+                        self.compile(rest)
+                    case _:
+                        self.compile(rest)
+                        self.compile(first)
             case []:
                 emit(I.LOAD64)
                 emit(box_empty_list())
     
     def compile_function(self, expr):
         """
+        Compiles a given function into bytecode.
 
         Args:
-            
+            expr: Expression to be compiled.
         """
         self.compile(expr)
         self.code.append(I.RETURN)
@@ -127,13 +140,15 @@ def box_char(val: str) -> int:
     Shifts 8 bits to the right and makes least significant 8 bits 0b00001111.
     
     Args:
-        val (str): Character value to be tagged.
+        val (str): Character value to be tagged. In the form of #\<char>
 
     Returns:
         int: 64-bit tagged character value.
     """
+    
+    chr = val[-1]
 
-    return ((ord(val) << CHAR_SHIFT) & ~CHAR_MASK) | CHAR_TAG
+    return ((ord(chr) << CHAR_SHIFT) & ~CHAR_MASK) | CHAR_TAG
 
 def box_empty_list() -> int:
     """
@@ -154,4 +169,3 @@ class I(enum.IntEnum):
     """
     LOAD64 = enum.auto()
     RETURN = enum.auto()
-
