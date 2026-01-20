@@ -72,6 +72,22 @@ class Compiler:
                 emit(I.IS_INT)
             case "boolean?":
                 emit(I.IS_BOOL)
+            case "+":
+                emit(I.PLUS)
+            case "*":
+                emit(I.TIMES)
+            case "-":
+                emit(I.MINUS)
+            case "<":
+                emit(I.LT)
+            case ">":
+                emit(I.GT)
+            case "<=":
+                emit(I.LEQ)
+            case ">=":
+                emit(I.GEQ)
+            case "=":
+                emit(I.EQ)
             case bool(_):
                 emit(I.LOAD64)
                 emit(box_bool(expr))
@@ -196,3 +212,12 @@ class I(enum.IntEnum):
     NOT = enum.auto()
     IS_INT = enum.auto()
     IS_BOOL = enum.auto()
+    PLUS = enum.auto()
+    TIMES = enum.auto()
+    MINUS = enum.auto()
+    LT = enum.auto()
+    GT = enum.auto()
+    LEQ = enum.auto()
+    GEQ = enum.auto()
+    EQ = enum.auto()
+

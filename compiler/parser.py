@@ -65,6 +65,26 @@ class Parser:
             case c:
                 raise NotImplementedError(f"Found {c}.")
 
+    def parse_expression(self) -> list:
+        """
+        Parses expression from string.
+
+        Returns:
+            list: Atomic values of expression that have been parsed.
+
+        Raises:
+            TypeError: Invalid expression.
+            NotImplementedError: Parse function for type not yet implemented.
+        """
+        # Consume opening parens.
+        self.pos += 1
+
+        match self.peek():
+            case ')':
+                return self.parse_empty_list()
+            case c:
+                raise NotImplementedError(f"Found {c}.")
+
     def peek(self) -> str:
         """
         Get character at the front of input string.
@@ -86,26 +106,6 @@ class Parser:
         """
         while self.peek() in WSP:
             self.pos += 1
-
-    def parse_expression(self) -> list:
-        """
-        Parses expression from string.
-
-        Returns:
-            list: Atomic values of expression that have been parsed.
-
-        Raises:
-            TypeError: Invalid expression.
-            NotImplementedError: Parse function for type not yet implemented.
-        """
-        # Consume opening parens.
-        self.pos += 1
-
-        match self.peek():
-            case ')':
-                return self.parse_empty_list()
-            case c:
-                raise NotImplementedError(f"Found {c}.")
 
     def parse_empty_list(self) -> list:
         """
