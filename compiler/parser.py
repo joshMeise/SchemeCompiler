@@ -65,7 +65,7 @@ class Parser:
             case c:
                 raise NotImplementedError(f"Found {c}.")
 
-    def peek(self) ->str:
+    def peek(self) -> str:
         """
         Get character at the front of input string.
 

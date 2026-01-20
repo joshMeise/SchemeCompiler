@@ -54,6 +54,10 @@ class Compiler:
         emit = self.code.append
 
         match expr:
+            case "add1":
+                emit(I.ADD1)
+            case "sub1":
+                emit(I.SUB1)
             case bool(_):
                 emit(I.LOAD64)
                 emit(box_bool(expr))
@@ -93,7 +97,7 @@ class Compiler:
         Writes instructions to file stream.
 
         Args:
-            f (BinaryIO): File opened for writing in binrayr format.
+            f (BinaryIO): File opened for writing in binray format.
         """
         for op in self.code:
             f.write(op.to_bytes(8, "little"))
@@ -169,3 +173,5 @@ class I(enum.IntEnum):
     """
     LOAD64 = enum.auto()
     RETURN = enum.auto()
+    ADD1 = enum.auto()
+    SUB1 = enum.auto()

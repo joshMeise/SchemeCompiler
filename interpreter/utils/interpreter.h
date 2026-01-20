@@ -38,4 +38,13 @@ private:
 
     // Pop value from stack.
     uint64_t pop(void);
+
+    // Add 1 to top value on stack.
+    void add1(void);
+
+    // Subtract 1 from top value on stack.
+    void sub1(void);
+
+    // Convert top valeu on stack from integer to character by adjusting tag
+    void int_to_char(void);
 };

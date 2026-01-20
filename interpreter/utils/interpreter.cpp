@@ -5,9 +5,6 @@
  * 01-16-2026
  * Description: 
  *
- * Questions:
- * - What do we do with PC as we read off of stack?
- *
  */
 
 #include "interpreter.h"
@@ -18,11 +15,18 @@
 
 #define BPB 8
 #define BPI 8
+#define FIXNUM_SHIFT 2
+#define CHAR_SHIFT 8
+#define CHAR_MASK 255
+#define CHAR_TAG 15
 
 // enumerations of opcodes.
 enum class OpCode : uint64_t {
     LOAD64 = 1,
-    RETURN = 2
+    RETURN = 2,
+    ADD1 = 3,
+    SUB1 = 4,
+    INT_TO_CHAR = 5
 };
 
 // Build insturction out of 4 bytes.
@@ -67,6 +71,18 @@ uint64_t Interpreter::interpret(void) {
                 // Pop a value from stack and return the value.
                 val = pop();
                 break;
+            case OpCode::ADD1:
+                // Add 1 to the top value on the stack.
+                add1();
+                break;
+            case OpCode::SUB1:
+                // Subtract 1 from top value on stack.
+                sub1();
+                break;
+            case OpCode::INT_TO_CHAR:
+                // Convert to character.
+                int_to_char();
+                break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
                 break;
@@ -109,4 +125,24 @@ uint64_t Interpreter::pop(void) {
     stack.pop();
 
     return val;
+}
+
+// Add 1 to the top value on the stack.
+void Interpreter::add1(void) {
+    // Add 4 due to shift.
+    stack.top() += 4;
+}
+
+// Subtract 1 from the top value on the stack.
+void Interpreter::sub1(void) {
+    // Subtract 4 due to shift.
+    stack.top() -= 4;
+}
+
+// Convert top valeu on stack from integer to character by adjusting tag.
+void Interpreter::int_to_char(void) {
+    // Shift and retag.
+    stack.top() <<= (CHAR_SHIFT - FIXNUM_SHIFT);
+    stack.top() &= ~CHAR_MASK;
+    stack.top() |= CHAR_TAG;
 }
