@@ -58,6 +58,10 @@ class Compiler:
                 emit(I.ADD1)
             case "sub1":
                 emit(I.SUB1)
+            case "integer->char":
+                emit(I.INT_TO_CHAR)
+            case "char->integer":
+                emit(I.CHAR_TO_INT)
             case bool(_):
                 emit(I.LOAD64)
                 emit(box_bool(expr))
@@ -175,3 +179,5 @@ class I(enum.IntEnum):
     RETURN = enum.auto()
     ADD1 = enum.auto()
     SUB1 = enum.auto()
+    INT_TO_CHAR = enum.auto()
+    CHAR_TO_INT = enum.auto()

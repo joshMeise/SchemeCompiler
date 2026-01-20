@@ -16,6 +16,8 @@
 #define BPB 8
 #define BPI 8
 #define FIXNUM_SHIFT 2
+#define FIXNUM_MASK 3
+#define FIXNUM_TAG 0
 #define CHAR_SHIFT 8
 #define CHAR_MASK 255
 #define CHAR_TAG 15
@@ -26,7 +28,8 @@ enum class OpCode : uint64_t {
     RETURN = 2,
     ADD1 = 3,
     SUB1 = 4,
-    INT_TO_CHAR = 5
+    INT_TO_CHAR = 5,
+    CHAR_TO_INT = 6
 };
 
 // Build insturction out of 4 bytes.
@@ -82,6 +85,10 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::INT_TO_CHAR:
                 // Convert to character.
                 int_to_char();
+                break;
+            case OpCode::CHAR_TO_INT:
+                // Convert to integer.
+                char_to_int();
                 break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
@@ -146,3 +153,12 @@ void Interpreter::int_to_char(void) {
     stack.top() &= ~CHAR_MASK;
     stack.top() |= CHAR_TAG;
 }
+
+// Convert top valeu on stack from character to integer by adjusting tag.
+void Interpreter::char_to_int(void) {
+    // Shift and retag.
+    stack.top() >>= (CHAR_SHIFT - FIXNUM_SHIFT);
+    stack.top() &= ~FIXNUM_MASK;
+    stack.top() |= FIXNUM_TAG;
+}
+

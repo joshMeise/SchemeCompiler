@@ -47,4 +47,7 @@ private:
 
     // Convert top valeu on stack from integer to character by adjusting tag
     void int_to_char(void);
+
+    // Convert top value on stack from character to integer by adjusting tag
+    void char_to_int(void);
 };
