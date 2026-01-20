@@ -1,4 +1,4 @@
-# test_compiler_add1.py - tests compilation of (add1 e) expression
+# test_compiler_is_zero.py - tests compilation of (zero? e) expression
 #
 # Josh Meise
 # 01-19-2026
@@ -11,9 +11,9 @@ import sys
 import os
 from compiler.compiler import Compiler
 
-class Add1CompileTests(unittest.TestCase):
+class IsZeroCompileTests(unittest.TestCase):
     """
-    Unit testing framework for the compiling of (add1 e) expressions.
+    Unit testing framework for the compiling of (zero? e) expressions.
     """
 
     def _compile(self, expr: list) -> bytes:
@@ -34,17 +34,17 @@ class Add1CompileTests(unittest.TestCase):
         c.write_to_stream(buf)
         return buf.getvalue()
 
-    def test_zero_add1(self):
+    def test_is_zero_empty_list(self):
         """
-        Tests adding 1 to 0.
+        Tests (zero? ()).
         """
-        self.assertEqual(self._compile(["add1", 0]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(self._compile(["zero?", []]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x2F\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
 
-    def test_one_add1(self):
+    def test_is_zero_0(self):
         """
-        Tests adding 1 to 1.
+        Tests (zero? 0).
         """
-        self.assertEqual(self._compile(["add1", 1]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(self._compile(["zero?", 0]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
 
 if __name__ == '__main__':
     unittest.main()
