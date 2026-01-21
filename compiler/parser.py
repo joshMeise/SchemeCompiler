@@ -9,11 +9,12 @@
 #
 # TODO: 
 # -Implement bounds checking on integers.
-# - I think that when checking that we have reached end of input we should consume all whitespace first.
+# - 
 # 
 # Questions:
 # - Does our parse function eventually loop through and parse the whole input?
 # - Should we be able to parse #\newline and equivalent escape sequances as characters?
+# - Should return types of each expression be checked in the parser so that doing something line (add1 (integer->char 3)) is illegal?
 #
 
 from typing import Union
@@ -107,7 +108,25 @@ class Parser:
             case _:
                 match self.peek_word():
                     case "add1":
-                        return self.parse_add1()
+                        return self.parse_unary_int_arg("add1")
+                    case "sub1":
+                        return self.parse_unary_int_arg("sub1")
+                    case "integer->char":
+                        return self.parse_unary_int_arg("integer->char")
+                    case "char->integer":
+                        return self.parse_unary_char_arg("char->integer")
+                    case "null?":
+                        return self.parse_unary_any_arg("null?")
+                    case "zero?":
+                        return self.parse_unary_int_arg("zero?")
+                    case "not":
+                        return self.parse_unary_any_arg("not")
+                    case "integer?":
+                        return self.parse_unary_any_arg("integer?")
+                    case "boolean?":
+                        return self.parse_unary_any_arg("boolean?")
+                    case w:
+                        raise NotImplementedError(f"Expression {w} not implemented.")
 
         return ast
 
@@ -253,22 +272,22 @@ class Parser:
 
         return "#\\" + ret_val
 
-    def parse_add1(self) -> str:
+    def parse_unary_int_arg(self, exp_name: str) -> str:
         """
-        Parses (add1 e) from string.
+        Parses unary exression (exp_name e) with integer argument from string.
 
         Returns:
-            list: ["add1", e].
+            list: [exp_name, e].
 
         Raises:
             TypeError: Invalid expression.
         """
         exp = []
 
-        # Skip over "add1".
-        self.pos += len("add1")
+        # Skip over exp_name.
+        self.pos += len(exp_name)
 
-        exp.append("add1")
+        exp.append(exp_name)
 
         # Consume whitespace.
         self.skip_whitespace()
@@ -277,18 +296,114 @@ class Parser:
         match self.peek():
             # Parse number and add to expression.
             case c if c.isdigit():
-                print(c)
                 num = self.parse_number()
                 exp.append(num)
+            # Append nested expression to list of expression to list of expressions.
+            case '(':
+                exp.append(self.parse_expression())
             case _:
-                raise TypeError("Invalid argument to add1 expression.")
+                raise TypeError(f"Invalid argument to {exp_name} expression.")
         
         # Consume whitespace.
         self.skip_whitespace()
 
         # If not closing parens, the expresion is invalid.
         if self.peek() != ')':
-            raise TypeError("Invalid argument to add1 expression.")
+            raise TypeError(f"Invalid argument to {exp_name} expression.")
+
+        # Skip closing parens.
+        self.pos += 1
+
+        return exp
+
+    def parse_unary_char_arg(self, exp_name: str) -> str:
+        """
+        Parses unary exression (exp_name e) with character argument from string.
+
+        Returns:
+            list: [exp_name, e].
+
+        Raises:
+            TypeError: Invalid expression.
+        """
+        exp = []
+
+        # Skip over exp_name.
+        self.pos += len(exp_name)
+
+        exp.append(exp_name)
+
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        # Ensure that number follows.
+        match self.peek():
+            # Parse character or boolean and add to expression.
+            case '#':
+                # Skip over '#'.
+                self.pos += 1
+                arg = self.parse_char()
+                exp.append(arg)
+            # Append nested expression to list of expression to list of expressions.
+            case '(':
+                exp.append(self.parse_expression())
+            case _:
+                raise TypeError(f"Invalid argument to {exp_name} expression.")
+        
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        # If not closing parens, the expresion is invalid.
+        if self.peek() != ')':
+            raise TypeError(f"Invalid argument to {exp_name} expression.")
+
+        # Skip closing parens.
+        self.pos += 1
+
+        return exp
+
+    def parse_unary_any_arg(self, exp_name: str) -> str:
+        """
+        Parses unary exression (exp_name e) with any type of argument from string.
+
+        Returns:
+            list: [exp_name, e].
+
+        Raises:
+            TypeError: Invalid expression.
+        """
+        exp = []
+
+        # Skip over exp_name.
+        self.pos += len(exp_name)
+
+        exp.append(exp_name)
+
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        # Ensure that number follows.
+        match self.peek():
+            # Parse number and add to expression.
+            case c if c.isdigit():
+                num = self.parse_number()
+                exp.append(num)
+            # Parse character or boolean and add to expression.
+            case '#':
+                arg = self.parse_boolean_or_char()
+                exp.append(arg)
+            # Append nested expression to list of expression to list of expressions.
+            case '(':
+                exp.append(self.parse_expression())
+            case _:
+                raise TypeError(f"Invalid argument to {exp_name} expression.")
+        
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        # If not closing parens, the expresion is invalid.
+        if self.peek() != ')':
+            raise TypeError(f"Invalid argument to {exp_name} expression.")
 
         # Skip closing parens.
         self.pos += 1
@@ -308,4 +423,4 @@ def scheme_parse(source: str) -> list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("   (   add1   3  )    "))
+    print(scheme_parse("   (char->integer #\\a)   "))
