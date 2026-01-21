@@ -68,4 +68,26 @@ private:
 
     // Add values on stack leaving result on stack.
     void plus(void);
+
+    // Multiply values on stack leaving result on stack.
+    void times(void);
+
+    // Subtract values on stack leaving result on stack.
+    void minus(void);
+
+    // Check that values on stack are in ascending order (top to bottom). Place truthy on stack if so.
+    void less_than(void);
+
+    // Check that values on stack are in descending order (top to bottom). Place truthy on stack if so.
+    void greater_than(void);
+
+    // Check that values on stack are in non-decreasing order (top to bottom). Place truthy on stack if so.
+    void less_than_equal(void);
+
+    // Check that values on stack are in non-increasing order (top to bottom). Place truthy on stack if so.
+    void greater_than_equal(void);
+
+    // Check that values on stack are equal. Place truthy on stack if so.
+    void equal(void);
+
 };

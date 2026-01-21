@@ -40,7 +40,14 @@ enum class OpCode : uint64_t {
     NOT = 9,
     IS_INT = 10,
     IS_BOOL = 11,
-    PLUS = 12
+    PLUS = 12,
+    TIMES = 13,
+    MINUS = 14,
+    LT = 15,
+    GT = 16,
+    LEQ = 17,
+    GEQ = 18,
+    EQ = 19
 };
 
 // Build insturction out of 4 bytes.
@@ -124,6 +131,34 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::PLUS:
                 // Add values that are currenty on stack. Leave result on stack.
                 plus();
+                break;
+            case OpCode::TIMES:
+                // Multiply values that are currenty on stack. Leave result on stack.
+                times();
+                break;
+            case OpCode::MINUS:
+                // Minus values that are currenty on stack. Leave result on stack.
+                minus();
+                break;
+            case OpCode::LT:
+                // Check that values on stack are in ascending order (top to bottom).
+                less_than();
+                break;
+            case OpCode::GT:
+                // Check that values on stack are in descending order (top to bottom).
+                greater_than();
+                break;
+            case OpCode::LEQ:
+                // Check that values on stack are in non-decreasing order (top to bottom).
+                less_than_equal();
+                break;
+            case OpCode::GEQ:
+                // Check that values on stack are in non-increasing order (top to bottom).
+                greater_than_equal();
+                break;
+            case OpCode::EQ:
+                // Check that values on stack are equal to one another.
+                equal();
                 break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
@@ -257,3 +292,184 @@ void Interpreter::plus(void) {
         stack.top() += val;
     }
 }
+
+// Multiply values on stack leaving result on stack.
+void Interpreter::times(void) {
+    uint64_t val;
+
+    while (stack.size() > 1) {
+        // Save top value in stack.
+        val = stack.top();
+
+        // Untag value.
+        val >>= FIXNUM_SHIFT;
+
+        // Remove top element of stack.
+        stack.pop();
+
+        // Untag current top value.
+        stack.top() >>= FIXNUM_SHIFT;
+
+        // Multiply removed value to top value on stack.
+        stack.top() *= val;
+
+        // Retag op value on stack.
+        stack.top() <<= FIXNUM_SHIFT;
+        stack.top() &= ~FIXNUM_MASK;
+        stack.top() |= FIXNUM_TAG;
+    }
+}
+
+// Subtract values on stack leaving result on stack.
+void Interpreter::minus(void) {
+    uint64_t val;
+
+    // Subtract from top value on stack.
+    val = stack.top() >> FIXNUM_SHIFT;
+    stack.pop();
+
+    while (stack.size() > 0) {
+        // Subtract value.
+        val -= (stack.top() >> FIXNUM_SHIFT);
+
+        // Remove top element of stack.
+        stack.pop();
+    }
+
+    // Retag value and push to top of stack.
+    val <<= FIXNUM_SHIFT;
+    val &= ~FIXNUM_MASK;
+    val |= FIXNUM_TAG;
+    stack.push(val);
+}
+
+// Check that values on stack are in ascending order (top to bottom). Place truthy on stack if so.
+void Interpreter::less_than(void) {
+    bool less_than;
+    uint64_t curr, prev;
+
+    less_than = true;
+
+    // Pop top value off stack.
+    curr = stack.top();
+    stack.pop();
+
+    while (stack.size() > 0) {
+        // Update previous and current.
+        prev = curr;
+        curr = stack.top();
+        stack.pop();
+        
+        if (prev >= curr) less_than = false;
+
+    }
+
+    // If values are in ascending order, push truthy onto stack, else push falsy.
+    if (less_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+}
+
+// Check that values on stack are in descending order (top to bottom). Place truthy on stack if so.
+void Interpreter::greater_than(void) {
+    bool greater_than;
+    uint64_t curr, prev;
+
+    greater_than = true;
+
+    // Pop top value off stack.
+    curr = stack.top();
+    stack.pop();
+
+    while (stack.size() > 0) {
+        // Update previous and current.
+        prev = curr;
+        curr = stack.top();
+        stack.pop();
+        
+        if (prev <= curr) greater_than = false;
+
+    }
+
+    // If values are in descending order, push truthy onto stack, else push falsy.
+    if (greater_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+}
+
+// Check that values on stack are in non-decreasing order (top to bottom). Place truthy on stack if so.
+void Interpreter::less_than_equal(void) {
+    bool less_than;
+    uint64_t curr, prev;
+
+    less_than = true;
+
+    // Pop top value off stack.
+    curr = stack.top();
+    stack.pop();
+
+    while (stack.size() > 0) {
+        // Update previous and current.
+        prev = curr;
+        curr = stack.top();
+        stack.pop();
+        
+        if (prev > curr) less_than = false;
+
+    }
+
+    // If values are in ascending order, push truthy onto stack, else push falsy.
+    if (less_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+}
+
+// Check that values on stack are in non-increasing order (top to bottom). Place truthy on stack if so.
+void Interpreter::greater_than_equal(void) {
+    bool greater_than;
+    uint64_t curr, prev;
+
+    greater_than = true;
+
+    // Pop top value off stack.
+    curr = stack.top();
+    stack.pop();
+
+    while (stack.size() > 0) {
+        // Update previous and current.
+        prev = curr;
+        curr = stack.top();
+        stack.pop();
+        
+        if (prev < curr) greater_than = false;
+
+    }
+
+    // If values are in descending order, push truthy onto stack, else push falsy.
+    if (greater_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+}
+
+// Check that values on stack are equal. Place truthy on stack if so.
+void Interpreter::equal(void) {
+    bool equal;
+    uint64_t curr, prev;
+
+    equal = true;
+
+    // Pop top value off stack.
+    curr = stack.top();
+    stack.pop();
+
+    while (stack.size() > 0) {
+        // Update previous and current.
+        prev = curr;
+        curr = stack.top();
+        stack.pop();
+        
+        if (prev != curr) equal = false;
+
+    }
+
+    // If values are in descending order, push truthy onto stack, else push falsy.
+    if (equal) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+}
+
