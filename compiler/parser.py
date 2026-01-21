@@ -4,8 +4,12 @@
 # 01-08-2026
 # Description: 
 #
+# Currently haev it that we can only accept one expression per line.
+# - Consumes whitespace at end and makes sure we haev reached end of input.
+#
 # TODO: 
 # -Implement bounds checking on integers.
+# - I think that when checking that we have reached end of input we should consume all whitespace first.
 # 
 # Questions:
 # - Does our parse function eventually loop through and parse the whole input?
@@ -57,20 +61,30 @@ class Parser:
             case '':
                 raise EOFError("Unexpected end of input.")
             case c if c.isdigit():
-                return self.parse_number()
+                val = self.parse_number()
             case '#':
-                return self.parse_boolean_or_char()
+                val = self.parse_boolean_or_char()
             case '(':
-                return self.parse_expression()
+                val = self.parse_expression()
             case c:
                 raise NotImplementedError(f"Found {c}.")
+
+        # Ensure that whitespace follows.
+        self.skip_whitespace()
+        
+        # If not whitespace or end of input, empty list is of invalid format.
+        if self.peek() != '':
+            raise TypeError("Invalid type.")
+
+        return val
+
 
     def parse_expression(self) -> list:
         """
         Parses expression from string.
 
         Returns:
-            list: Atomic values of expression that have been parsed.
+            list: AST containing expressiont aht have been parsed.
 
         Raises:
             TypeError: Invalid expression.
@@ -79,11 +93,23 @@ class Parser:
         # Consume opening parens.
         self.pos += 1
 
+        # Skip whitespace.
+        self.skip_whitespace()
+
+        ast = []
+
         match self.peek():
             case ')':
                 return self.parse_empty_list()
-            case c:
-                raise NotImplementedError(f"Found {c}.")
+            # Contains another expression.
+            case '(':
+                ast.append(self.parse_expression())
+            case _:
+                match self.peek_word():
+                    case "add1":
+                        return self.parse_add1()
+
+        return ast
 
     def peek(self) -> str:
         """
@@ -100,6 +126,21 @@ class Parser:
         c = self.source[self.pos]
         return c
 
+    def peek_word(self) -> str:
+        """
+        Get word at the front of input string.
+
+        Returns:
+            str: Word at front of input string.
+        """
+        # Return no word if end of input has been reached.
+        if self.pos == self.length:
+            return ''
+
+        # Return front word in input string.
+        w = self.source[self.pos::].split(' ')[0]
+        return w
+    
     def skip_whitespace(self):
         """
         Removes leading whitespace in source code.
@@ -119,11 +160,7 @@ class Parser:
         """
         # Consume closing parens.
         self.pos += 1
-
-        # If not whitespace or end of input, empty list is of invalid format.
-        if not(self.peek() in WSP) and self.peek() != '':
-            raise TypeError("Invalid list type.")
-
+        
         return []
 
     def parse_number(self) -> int:
@@ -143,9 +180,12 @@ class Parser:
             num += int(self.source[self.pos])
             self.pos += 1
 
+        # Consume whitespace.
+        self.skip_whitespace()
+
         # If not whitespace or end of input, number is of invalid format.
-        if not(self.peek() in WSP) and self.peek() != '':
-            raise TypeError("Invalid number type.")
+        #if self.peek() != '':
+        #    raise TypeError("Invalid number type.")
 
         return num
 
@@ -189,10 +229,6 @@ class Parser:
         
         self.pos += 1
 
-        # If not whitespace or ind of input, number is of invalid format.
-        if not(self.peek() in WSP) and self.peek() != '':
-            raise TypeError("Invalid boolean type.")
-
         return ret_val
 
     def parse_char(self) -> str:
@@ -215,11 +251,49 @@ class Parser:
         
         self.pos += 1
 
-        # If not whitespace or ind of input, number is of invalid format.
-        if not(self.peek() in WSP) and self.peek() != '':
-            raise TypeError("Invalid character type.")
-
         return "#\\" + ret_val
+
+    def parse_add1(self) -> str:
+        """
+        Parses (add1 e) from string.
+
+        Returns:
+            list: ["add1", e].
+
+        Raises:
+            TypeError: Invalid expression.
+        """
+        exp = []
+
+        # Skip over "add1".
+        self.pos += len("add1")
+
+        exp.append("add1")
+
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        # Ensure that number follows.
+        match self.peek():
+            # Parse number and add to expression.
+            case c if c.isdigit():
+                print(c)
+                num = self.parse_number()
+                exp.append(num)
+            case _:
+                raise TypeError("Invalid argument to add1 expression.")
+        
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        # If not closing parens, the expresion is invalid.
+        if self.peek() != ')':
+            raise TypeError("Invalid argument to add1 expression.")
+
+        # Skip closing parens.
+        self.pos += 1
+
+        return exp
 
 def scheme_parse(source: str) -> list:
     """
@@ -232,3 +306,6 @@ def scheme_parse(source: str) -> list:
         list: Abstract syntax tree in the form of a Python list.
     """
     return Parser(source).parse()
+
+if __name__ == "__main__":
+    print(scheme_parse("   (   add1   3  )    "))
