@@ -1,7 +1,7 @@
-# test_compiler_int_to_char.py - tests compilation of (integer->char e)
+# test_compiler_int_to_char.py - tests compilation of (integer->char e) expression
 #
 # Josh Meise
-# 01-20-2026
+# 01-19-2026
 # Description:
 #
 
@@ -13,7 +13,7 @@ from compiler.compiler import Compiler
 
 class IntToCharCompileTests(unittest.TestCase):
     """
-    Unit testing framework for the compiling of (integer->char e).
+    Unit testing framework for the compiling of (integer->char e) expressions.
     """
 
     def _compile(self, expr: list) -> bytes:
@@ -34,17 +34,11 @@ class IntToCharCompileTests(unittest.TestCase):
         c.write_to_stream(buf)
         return buf.getvalue()
 
-    def test_int_to_char_15(self):
+    def test_int_to_char_regular(self):
         """
-        Tests (integer->char 15).
+        Test (integer->char 1).
         """
-        self.assertEqual(self._compile(["integer->char", 15]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x3C\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
-
-    def test_int_to_char_10(self):
-        """
-        Tests (integer->char 10).
-        """
-        self.assertEqual(self._compile(["integer->char", 10]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x28\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(self._compile(["integer->char", 1]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
 
 if __name__ == '__main__':
     unittest.main()

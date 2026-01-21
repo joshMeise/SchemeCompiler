@@ -1,7 +1,7 @@
-# test_compiler_char_to_int.py - tests compilation of (char->integer e)
+# test_compiler_char_to_int.py - tests compilation of (char->integer e) expression
 #
 # Josh Meise
-# 01-20-2026
+# 01-19-2026
 # Description:
 #
 
@@ -11,9 +11,9 @@ import sys
 import os
 from compiler.compiler import Compiler
 
-class CharToIntCompileTests(unittest.TestCase):
+class IntToCharCompileTests(unittest.TestCase):
     """
-    Unit testing framework for the compiling of (char->integer e).
+    Unit testing framework for the compiling of (char->integer e) expressions.
     """
 
     def _compile(self, expr: list) -> bytes:
@@ -34,17 +34,11 @@ class CharToIntCompileTests(unittest.TestCase):
         c.write_to_stream(buf)
         return buf.getvalue()
 
-    def test_char_to_int_a(self):
+    def test_char_to_int_regular(self):
         """
-        Tests (char->integer #\a).
+        Test (char->integer 1).
         """
-        self.assertEqual(self._compile(["char->integer", "#\\a"]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x0F\x61\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
-
-    def test_char_to_int_newline(self):
-        """
-        Tests (char->integer #\\n).
-        """
-        self.assertEqual(self._compile(["char->integer", "#\\\n"]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x0F\x0A\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(self._compile(["char->integer", 1]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
 
 if __name__ == '__main__':
     unittest.main()

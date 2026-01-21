@@ -1,7 +1,7 @@
-# test_compiler_sub1.py - tests compilation of (sub1 e) expression
+# test_compiler_add1.py - tests compilation of (add1 e) expression
 #
 # Josh Meise
-# 01-19-2026
+# 01-21-2026
 # Description:
 #
 
@@ -34,17 +34,23 @@ class Sub1CompileTests(unittest.TestCase):
         c.write_to_stream(buf)
         return buf.getvalue()
 
-    def test_one_sub1(self):
+    def test_sub1_regular(self):
         """
-        Tests subtracting 1 from 1.
+        Test (sub1 1).
         """
         self.assertEqual(self._compile(["sub1", 1]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
 
-    def test_two_sub1(self):
+    def test_sub1_nested(self):
         """
-        Tests subtracting 1 from 2.
+        Test (sub1 (sub1 1)).
         """
-        self.assertEqual(self._compile(["sub1", 2]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(self._compile(["sub1", ["sub1", 1]]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+
+    def test_sub1_double_nested(self):
+        """
+        Test (sub1 (sub1 (sub1 1))).
+        """
+        self.assertEqual(self._compile(["sub1", ["sub1", ["sub1", 1]]]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
 
 if __name__ == '__main__':
     unittest.main()

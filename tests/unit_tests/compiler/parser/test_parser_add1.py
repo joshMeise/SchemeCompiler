@@ -61,5 +61,24 @@ class Add1ParseTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             self._parse("(add1 #t)")
 
+    def test_add1_nested(self):
+        """
+        Test (add1 (add1 0)).
+        """
+        self.assertEqual(self._parse("(add1 (add1 0))"), ["add1", ["add1", 0]])
+
+    def test_add1_double_nested(self):
+        """
+        Test (add1 (add1 (add1 0))).
+        """
+        self.assertEqual(self._parse("(add1 (add1 (add1 0)))"), ["add1", ["add1", ["add1", 0]]])
+        
+    def test_add1_missing_parens(self):
+        """
+        Test (add1 0
+        """
+        with self.assertRaises(TypeError):
+            self._parse("(add1 0")
+
 if __name__ == '__main__':
     unittest.main()

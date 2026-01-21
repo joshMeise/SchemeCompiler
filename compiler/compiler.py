@@ -103,7 +103,7 @@ class Compiler:
                 match first:
                     # Compile inner lists (functions) first.
                     case [_, *_]:
-                        self.compile_function(first)
+                        self.compile(first)
                         self.compile(rest)
                     case _:
                         self.compile(rest)
@@ -224,5 +224,5 @@ class I(enum.IntEnum):
 if __name__ == "__main__":
     compiler = Compiler()
 
-    compiler.compile_function(['+', 1, 2, ['+', 3, 4], 5])
+    compiler.compile_function(["+", 1, ["+", 2, ["+", 3, 4]]])
     print(compiler.code)
