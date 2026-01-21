@@ -79,7 +79,6 @@ class Parser:
 
         return val
 
-
     def parse_expression(self) -> list:
         """
         Parses expression from string.
@@ -125,6 +124,22 @@ class Parser:
                         return self.parse_unary_any_arg("integer?")
                     case "boolean?":
                         return self.parse_unary_any_arg("boolean?")
+                    case "+":
+                        return self.parse_binary_int_args("+")
+                    case "*":
+                        return self.parse_binary_int_args("*")
+                    case "-":
+                        return self.parse_binary_int_args("-")
+                    case "<":
+                        return self.parse_binary_int_args("<")
+                    case ">":
+                        return self.parse_binary_int_args(">")
+                    case "<=":
+                        return self.parse_binary_int_args("<=")
+                    case ">=":
+                        return self.parse_binary_int_args(">=")
+                    case "=":
+                        return self.parse_binary_int_args("=")
                     case w:
                         raise NotImplementedError(f"Expression {w} not implemented.")
 
@@ -410,6 +425,48 @@ class Parser:
 
         return exp
 
+    def parse_binary_int_args(self, exp_name: str) -> str:
+        """
+        Parses binary expression (exp_name e1 e2 ...) with integer arguments from string.
+
+        Returns:
+            list: [exp_name, e1, e2, ...].
+
+        Raises:
+            TypeError: Invalid expression.
+        """
+        exp = []
+
+        # Skip over exp_name.
+        self.pos += len(exp_name)
+
+        exp.append(exp_name)
+
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        # Ensure that numbers follow and parse those numbers.
+        while self.peek() != ')':
+            match self.peek():
+                # Parse number and add to expression.
+                case c if c.isdigit():
+                    num = self.parse_number()
+                    exp.append(num)
+                # Append nested expression to list of expression to list of expressions.
+                case '(':
+                    exp.append(self.parse_expression())
+                case _:
+                    raise TypeError(f"Invalid argument to {exp_name} expression.")
+        
+            # Consume whitespace.
+            self.skip_whitespace()
+
+        # Skip closing parens.
+        self.pos += 1
+
+        return exp
+
+
 def scheme_parse(source: str) -> list:
     """
     Wrapper around parsing function for Scheme programs.
@@ -423,4 +480,4 @@ def scheme_parse(source: str) -> list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("   (char->integer #\\a)   "))
+    print(scheme_parse("   (+ 1 2 (+ 3 4) 5)   "))
