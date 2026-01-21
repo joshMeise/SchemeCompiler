@@ -340,7 +340,7 @@ void Interpreter::minus(void) {
     val <<= FIXNUM_SHIFT;
     val &= ~FIXNUM_MASK;
     val |= FIXNUM_TAG;
-    stack.push(val);
+    push(val);
 }
 
 // Check that values on stack are in ascending order (top to bottom). Place truthy on stack if so.
@@ -351,22 +351,20 @@ void Interpreter::less_than(void) {
     less_than = true;
 
     // Pop top value off stack.
-    curr = stack.top();
-    stack.pop();
+    curr = pop();
 
     while (stack.size() > 0) {
         // Update previous and current.
         prev = curr;
-        curr = stack.top();
-        stack.pop();
-        
+        curr = pop();
+
         if (prev >= curr) less_than = false;
 
     }
 
     // If values are in ascending order, push truthy onto stack, else push falsy.
-    if (less_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
-    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    if (less_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 
 // Check that values on stack are in descending order (top to bottom). Place truthy on stack if so.
@@ -377,22 +375,20 @@ void Interpreter::greater_than(void) {
     greater_than = true;
 
     // Pop top value off stack.
-    curr = stack.top();
-    stack.pop();
+    curr = pop();
 
     while (stack.size() > 0) {
         // Update previous and current.
         prev = curr;
-        curr = stack.top();
-        stack.pop();
+        curr = pop();
         
         if (prev <= curr) greater_than = false;
 
     }
 
     // If values are in descending order, push truthy onto stack, else push falsy.
-    if (greater_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
-    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    if (greater_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 
 // Check that values on stack are in non-decreasing order (top to bottom). Place truthy on stack if so.
@@ -403,22 +399,20 @@ void Interpreter::less_than_equal(void) {
     less_than = true;
 
     // Pop top value off stack.
-    curr = stack.top();
-    stack.pop();
+    curr = pop();
 
     while (stack.size() > 0) {
         // Update previous and current.
         prev = curr;
-        curr = stack.top();
-        stack.pop();
+        curr = pop();
         
         if (prev > curr) less_than = false;
 
     }
 
     // If values are in ascending order, push truthy onto stack, else push falsy.
-    if (less_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
-    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    if (less_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 
 // Check that values on stack are in non-increasing order (top to bottom). Place truthy on stack if so.
@@ -429,22 +423,20 @@ void Interpreter::greater_than_equal(void) {
     greater_than = true;
 
     // Pop top value off stack.
-    curr = stack.top();
-    stack.pop();
+    curr = pop();
 
     while (stack.size() > 0) {
         // Update previous and current.
         prev = curr;
-        curr = stack.top();
-        stack.pop();
+        curr = pop();
         
         if (prev < curr) greater_than = false;
 
     }
 
     // If values are in descending order, push truthy onto stack, else push falsy.
-    if (greater_than) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
-    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    if (greater_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 
 // Check that values on stack are equal. Place truthy on stack if so.
@@ -455,21 +447,19 @@ void Interpreter::equal(void) {
     equal = true;
 
     // Pop top value off stack.
-    curr = stack.top();
-    stack.pop();
+    curr = pop();
 
     while (stack.size() > 0) {
         // Update previous and current.
         prev = curr;
-        curr = stack.top();
-        stack.pop();
+        curr = pop();
         
         if (prev != curr) equal = false;
 
     }
 
     // If values are in descending order, push truthy onto stack, else push falsy.
-    if (equal) stack.push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
-    else stack.push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    if (equal) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 

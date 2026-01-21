@@ -127,7 +127,7 @@ class Compiler:
         Writes instructions to file stream.
 
         Args:
-            f (BinaryIO): File opened for writing in binray format.
+            f (BinaryIO): File opened for writing in binary format.
         """
         for op in self.code:
             f.write(op.to_bytes(8, "little"))
@@ -220,3 +220,9 @@ class I(enum.IntEnum):
     LEQ = enum.auto()
     GEQ = enum.auto()
     EQ = enum.auto()
+
+if __name__ == "__main__":
+    compiler = Compiler()
+
+    compiler.compile_function(['+', 1, 2, ['+', 3, 4], 5])
+    print(compiler.code)
