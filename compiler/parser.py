@@ -327,7 +327,10 @@ class Parser:
             raise TypeError(f"Invalid argument to {exp_name} expression.")
 
         # Skip closing parens.
-        self.pos += 1
+        if self.peek() != '' and self.peek() == ')':
+            self.pos += 1
+        else:
+            raise TypeError(f"{exp_name} expression missing closing parens.")
 
         return exp
 
@@ -373,7 +376,10 @@ class Parser:
             raise TypeError(f"Invalid argument to {exp_name} expression.")
 
         # Skip closing parens.
-        self.pos += 1
+        if self.peek() != '' and self.peek() == ')':
+            self.pos += 1
+        else:
+            raise TypeError(f"{exp_name} expression missing closing parens.")
 
         return exp
 
@@ -421,7 +427,10 @@ class Parser:
             raise TypeError(f"Invalid argument to {exp_name} expression.")
 
         # Skip closing parens.
-        self.pos += 1
+        if self.peek() != '' and self.peek() == ')':
+            self.pos += 1
+        else:
+            raise TypeError(f"{exp_name} expression missing closing parens.")
 
         return exp
 
@@ -445,24 +454,40 @@ class Parser:
         # Consume whitespace.
         self.skip_whitespace()
 
-        # Ensure that numbers follow and parse those numbers.
-        while self.peek() != ')':
-            match self.peek():
-                # Parse number and add to expression.
-                case c if c.isdigit():
-                    num = self.parse_number()
-                    exp.append(num)
-                # Append nested expression to list of expression to list of expressions.
-                case '(':
-                    exp.append(self.parse_expression())
-                case _:
-                    raise TypeError(f"Invalid argument to {exp_name} expression.")
+        # Parse two numbers that follow exp_name.
+        match self.peek():
+            # Parse number and add to expression.
+            case c if c.isdigit():
+                num = self.parse_number()
+                exp.append(num)
+            # Append nested expression to list of expression to list of expressions.
+            case '(':
+                exp.append(self.parse_expression())
+            case _:
+                raise TypeError(f"Invalid argument to {exp_name} expression.")
         
-            # Consume whitespace.
-            self.skip_whitespace()
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        match self.peek():
+            # Parse number and add to expression.
+            case c if c.isdigit():
+                num = self.parse_number()
+                exp.append(num)
+            # Append nested expression to list of expression to list of expressions.
+            case '(':
+                exp.append(self.parse_expression())
+            case _:
+                raise TypeError(f"Invalid argument to {exp_name} expression.")
+
+        # Consume whitespace.
+        self.skip_whitespace()
 
         # Skip closing parens.
-        self.pos += 1
+        if self.peek() != '' and self.peek() == ')':
+            self.pos += 1
+        else:
+            raise TypeError(f"{exp_name} expression missing closing parens.")
 
         return exp
 
