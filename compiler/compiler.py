@@ -26,6 +26,9 @@ EMPTY_LIST_SHIFT = 8
 EMPTY_LIST_TAG = 47
 EMPTY_LIST_MASK = 255
 
+UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?"]
+BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "="]
+
 class Compiler:
     """
     Class to handle the compilation of parsed Scheme programs.
@@ -54,6 +57,60 @@ class Compiler:
         emit = self.code.append
 
         match expr:
+            case bool(_):
+                emit(I.LOAD64)
+                emit(box_bool(expr))
+            case int(_):
+                emit(I.LOAD64)
+                emit(box_fixnum(expr))
+            case str(_):
+                emit(I.LOAD64)
+                emit(box_char(expr))
+            case [only]:
+                self.compile(only)
+            case []:
+                emit(I.LOAD64)
+                emit(box_empty_list())
+            # Compilation of an expression.
+            case [first, *rest]:
+                match first:
+                    case o if o in BINARY_OPS:
+                        self.compile(rest[0])
+                        self.compile(rest[1])
+                        self.emit_symbol(o)
+                    case w if w in UNARY_OPS:
+                        self.compile(rest[0])
+                        self.emit_symbol(w)
+
+    def compile_function(self, expr):
+        """
+        Compiles a given function into bytecode.
+
+        Args:
+            expr: Expression to be compiled.
+        """
+        self.compile(expr)
+        self.code.append(I.RETURN)
+
+    def write_to_stream(self, f: BinaryIO):
+        """
+        Writes instructions to file stream.
+
+        Args:
+            f (BinaryIO): File opened for writing in binary format.
+        """
+        for op in self.code:
+            f.write(op.to_bytes(8, "little"))
+
+    def emit_symbol(self, c: str):
+        """
+        Maps function names to their bytecode values.
+
+        Args:
+            c (str): Function name to be mapped.
+        """
+        emit = self.code.append
+        match c:
             case "add1":
                 emit(I.ADD1)
             case "sub1":
@@ -88,49 +145,6 @@ class Compiler:
                 emit(I.GEQ)
             case "=":
                 emit(I.EQ)
-            case bool(_):
-                emit(I.LOAD64)
-                emit(box_bool(expr))
-            case int(_):
-                emit(I.LOAD64)
-                emit(box_fixnum(expr))
-            case str(_):
-                emit(I.LOAD64)
-                emit(box_char(expr))
-            case [only]:
-                self.compile(only)
-            case [first, *rest]:
-                match first:
-                    # Compile inner lists (functions) first.
-                    case [_, *_]:
-                        self.compile(first)
-                        self.compile(rest)
-                    case _:
-                        self.compile(rest)
-                        self.compile(first)
-            case []:
-                emit(I.LOAD64)
-                emit(box_empty_list())
-    
-    def compile_function(self, expr):
-        """
-        Compiles a given function into bytecode.
-
-        Args:
-            expr: Expression to be compiled.
-        """
-        self.compile(expr)
-        self.code.append(I.RETURN)
-
-    def write_to_stream(self, f: BinaryIO):
-        """
-        Writes instructions to file stream.
-
-        Args:
-            f (BinaryIO): File opened for writing in binary format.
-        """
-        for op in self.code:
-            f.write(op.to_bytes(8, "little"))
 
 def box_fixnum(val: int) -> int:
     """
@@ -223,6 +237,13 @@ class I(enum.IntEnum):
 
 if __name__ == "__main__":
     compiler = Compiler()
+    compiler.compile_function(["-", ["-", 4, 2], 1])
+    print(compiler.code)
 
-    compiler.compile_function(["+", 1, ["+", 2, ["+", 3, 4]]])
+    compiler = Compiler()
+    compiler.compile_function(["-", 5, ["-", 3, 1]])
+    print(compiler.code)
+
+    compiler = Compiler()
+    compiler.compile_function(['+', ['+', 1 , ["+", 2, 3]], ["+", 4, 5]])
     print(compiler.code)

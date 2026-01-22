@@ -281,185 +281,103 @@ void Interpreter::is_bool(void) {
 void Interpreter::plus(void) {
     uint64_t val;
 
-    while (stack.size() > 1) {
-        // Save top value in stack.
-        val = stack.top();
+    // Pop two values off stack and add them.
+    val = pop() >> FIXNUM_SHIFT;
+    val += pop() >> FIXNUM_SHIFT;
 
-        // Remove top element of stack.
-        stack.pop();
-
-        // Add removed value to top value on stack.
-        stack.top() += val;
-    }
+    // Push result bakc onto stack.
+    push(((val << FIXNUM_SHIFT) & ~FIXNUM_MASK) | FIXNUM_TAG);
 }
 
 // Multiply values on stack leaving result on stack.
 void Interpreter::times(void) {
     uint64_t val;
 
-    while (stack.size() > 1) {
-        // Save top value in stack.
-        val = stack.top();
+    // Pop two values off stack and multiply them.
+    val = pop() >> FIXNUM_SHIFT;
+    val *= pop() >> FIXNUM_SHIFT;
 
-        // Untag value.
-        val >>= FIXNUM_SHIFT;
-
-        // Remove top element of stack.
-        stack.pop();
-
-        // Untag current top value.
-        stack.top() >>= FIXNUM_SHIFT;
-
-        // Multiply removed value to top value on stack.
-        stack.top() *= val;
-
-        // Retag op value on stack.
-        stack.top() <<= FIXNUM_SHIFT;
-        stack.top() &= ~FIXNUM_MASK;
-        stack.top() |= FIXNUM_TAG;
-    }
+    // Push result bakc onto stack.
+    push(((val << FIXNUM_SHIFT) & ~FIXNUM_MASK) | FIXNUM_TAG);
 }
 
 // Subtract values on stack leaving result on stack.
 void Interpreter::minus(void) {
-    uint64_t val;
+    uint64_t val_1, val_2, val;
 
-    // Subtract from top value on stack.
-    val = stack.top() >> FIXNUM_SHIFT;
-    stack.pop();
+    // Pop two values off stack and subtract them.
+    val_1 = pop() >> FIXNUM_SHIFT;
+    val_2 = pop() >> FIXNUM_SHIFT;
+    val = val_2 - val_1;
 
-    while (stack.size() > 0) {
-        // Subtract value.
-        val -= (stack.top() >> FIXNUM_SHIFT);
-
-        // Remove top element of stack.
-        stack.pop();
-    }
-
-    // Retag value and push to top of stack.
-    val <<= FIXNUM_SHIFT;
-    val &= ~FIXNUM_MASK;
-    val |= FIXNUM_TAG;
-    push(val);
+    // Push result bakc onto stack.
+    push(((val << FIXNUM_SHIFT) & ~FIXNUM_MASK) | FIXNUM_TAG);
 }
 
 // Check that values on stack are in ascending order (top to bottom). Place truthy on stack if so.
 void Interpreter::less_than(void) {
-    bool less_than;
-    uint64_t curr, prev;
+    uint64_t val_1, val_2;
 
-    less_than = true;
+    // Pop two values off of stack.
+    val_1 = pop() >> FIXNUM_SHIFT;
+    val_2 = pop() >> FIXNUM_SHIFT;
 
-    // Pop top value off stack.
-    curr = pop();
-
-    while (stack.size() > 0) {
-        // Update previous and current.
-        prev = curr;
-        curr = pop();
-
-        if (prev >= curr) less_than = false;
-
-    }
-
-    // If values are in ascending order, push truthy onto stack, else push falsy.
-    if (less_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    // Compare values and push result onto stack.
+    if (val_2 < val_1) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
     else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 
 // Check that values on stack are in descending order (top to bottom). Place truthy on stack if so.
 void Interpreter::greater_than(void) {
-    bool greater_than;
-    uint64_t curr, prev;
+    uint64_t val_1, val_2;
 
-    greater_than = true;
+    // Pop two values off of stack.
+    val_1 = pop() >> FIXNUM_SHIFT;
+    val_2 = pop() >> FIXNUM_SHIFT;
 
-    // Pop top value off stack.
-    curr = pop();
-
-    while (stack.size() > 0) {
-        // Update previous and current.
-        prev = curr;
-        curr = pop();
-        
-        if (prev <= curr) greater_than = false;
-
-    }
-
-    // If values are in descending order, push truthy onto stack, else push falsy.
-    if (greater_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    // Compare values and push result onto stack.
+    if (val_2 > val_1) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
     else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 
 // Check that values on stack are in non-decreasing order (top to bottom). Place truthy on stack if so.
 void Interpreter::less_than_equal(void) {
-    bool less_than;
-    uint64_t curr, prev;
+    uint64_t val_1, val_2;
 
-    less_than = true;
+    // Pop two values off of stack.
+    val_1 = pop() >> FIXNUM_SHIFT;
+    val_2 = pop() >> FIXNUM_SHIFT;
 
-    // Pop top value off stack.
-    curr = pop();
-
-    while (stack.size() > 0) {
-        // Update previous and current.
-        prev = curr;
-        curr = pop();
-        
-        if (prev > curr) less_than = false;
-
-    }
-
-    // If values are in ascending order, push truthy onto stack, else push falsy.
-    if (less_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    // Compare values and push result onto stack.
+    if (val_2 <= val_1) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
     else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+
 }
 
 // Check that values on stack are in non-increasing order (top to bottom). Place truthy on stack if so.
 void Interpreter::greater_than_equal(void) {
-    bool greater_than;
-    uint64_t curr, prev;
+    uint64_t val_1, val_2;
 
-    greater_than = true;
+    // Pop two values off of stack.
+    val_1 = pop() >> FIXNUM_SHIFT;
+    val_2 = pop() >> FIXNUM_SHIFT;
 
-    // Pop top value off stack.
-    curr = pop();
-
-    while (stack.size() > 0) {
-        // Update previous and current.
-        prev = curr;
-        curr = pop();
-        
-        if (prev < curr) greater_than = false;
-
-    }
-
-    // If values are in descending order, push truthy onto stack, else push falsy.
-    if (greater_than) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    // Compare values and push result onto stack.
+    if (val_2 >= val_1) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
     else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+
 }
 
 // Check that values on stack are equal. Place truthy on stack if so.
 void Interpreter::equal(void) {
-    bool equal;
-    uint64_t curr, prev;
+    uint64_t val_1, val_2;
 
-    equal = true;
+    // Pop two values off of stack.
+    val_1 = pop() >> FIXNUM_SHIFT;
+    val_2 = pop() >> FIXNUM_SHIFT;
 
-    // Pop top value off stack.
-    curr = pop();
-
-    while (stack.size() > 0) {
-        // Update previous and current.
-        prev = curr;
-        curr = pop();
-        
-        if (prev != curr) equal = false;
-
-    }
-
-    // If values are in descending order, push truthy onto stack, else push falsy.
-    if (equal) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+    // Compare values and push result onto stack.
+    if (val_2 == val_1) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
     else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
 }
 

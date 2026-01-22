@@ -505,4 +505,4 @@ def scheme_parse(source: str) -> list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("   (+ 1 2 (+ 3 4) 5)   "))
+    print(scheme_parse("   (+ (+ 6 7) (+ (+ 8 9) 10))   "))

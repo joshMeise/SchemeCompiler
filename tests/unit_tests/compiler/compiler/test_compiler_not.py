@@ -11,7 +11,7 @@ import sys
 import os
 from compiler.compiler import Compiler
 
-class IsBoolCompileTests(unittest.TestCase):
+class NotCompileTests(unittest.TestCase):
     """
     Unit testing framework for the compiling of (not e) expressions.
     """
