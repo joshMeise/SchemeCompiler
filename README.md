@@ -1,12 +1,17 @@
 # SchemeCompiler
 
-## Big things:
-- scheme_parse() currently outputs a list but compile_function() takes just an atomic value. Fix this.
+## Instructions
 
-## Questions:
-- How do we handle integer overflow? Do we wish for it to be blocked by the parser or do we wish for overflow to behave in the same way it does in C?
-- Do we want to catch errors on arguments in parser?
-    - Thinking specifically of integer->char for now? What if int is too large? My Scheme implementation just returns the hex value then.
+### Running tests:
+- In the **SchemeCompiler** directory, run `python3 run_tests.py`. This will run unit tests on each component.
+- Each component is tested separately. Tests can be found in **SchemeCompiler/tests/unit_tests/**.
+- To run tests for a given construct in a given component, in **SchemeCompiler** run `python3 -m unittest discover -s tests -p test_\<component\>_\<construct\>.py`.
+    - If individually testing an interpreter component, make sure the interpreter has been built beforehand. In both **SchemeCompiler/interpreter/utils/** and **SchemeCompiler/interpreter/execs** run `make clean; make`.
+    - The interpreter is automatically built by the *run_tests.py* script.
+- To run tests for a given construct in a given component, in **SchemeCompiler** run `python3 -m unittest discover -s tests -p "test_\<component\>_\*.py"`.
+    - Again, ensure that the interpreter has been built before testing it individually.
 
-## TODO:
-- Integeration tests.
+### Running the compiler:
+- In the **SchemeComppiler** directory, run `python3 run_scheme.py`.
+- You can then input any valid Scheme expression and observe the output.
+
