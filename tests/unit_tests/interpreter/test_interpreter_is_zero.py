@@ -29,7 +29,7 @@ class IsZeroInterpreterTests(unittest.TestCase):
             source (bytes): Bytecode to be interpreted.
 
         Returns:
-            int: Integer value output by interpreter.
+            str: True or false string outout by interpreter.
         """
         inter = subprocess.Popen([INTERPRET], stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
@@ -37,15 +37,15 @@ class IsZeroInterpreterTests(unittest.TestCase):
 
         return stdout.decode("utf-8")
 
-    def test_is_zero_0(self):
+    def test_is_zero_regular_true(self):
         """
-        Test (zero? 0).
+        test (zero? 0).
         """
         self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "#t\n")
 
-    def test_is_zero_1(self):
+    def test_is_zero_regular_false(self):
         """
-        Test (zero? 1).
+        test (zero? 1).
         """
         self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "#f\n")
 

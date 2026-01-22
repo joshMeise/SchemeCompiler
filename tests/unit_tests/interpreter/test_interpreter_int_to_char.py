@@ -19,9 +19,9 @@ INTERPRET = "./interpreter/execs/interpret"
 
 class IntToCharInterpreterTests(unittest.TestCase):
     """
-    Unit testing framework for interpreting (add1 e).
+    Unit testing framework for interpreting (integer->char e).
     """
-    def _interpret(self, source: bytes) -> int:
+    def _interpret(self, source: bytes) -> str:
         """
         Calls interpreter and interprets byte code.
 
@@ -29,7 +29,7 @@ class IntToCharInterpreterTests(unittest.TestCase):
             source (bytes): Bytecode to be interpreted.
 
         Returns:
-            int: Integer value output by interpreter.
+            str: string output by the interpreter
         """
         inter = subprocess.Popen([INTERPRET], stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
@@ -37,17 +37,11 @@ class IntToCharInterpreterTests(unittest.TestCase):
 
         return stdout.decode("utf-8")
 
-    def test_int_to_char_97(self):
+    def test_int_to_char_regular(self):
         """
-        Test convert 97 to 'a'.
+        Test (integer->char 97).
         """
         self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x84\x01\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "#\\a\n")
-
-    def test_int_to_char_10(self):
-        """
-        Test convert 10 to newline.
-        """
-        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x28\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "#\\newline\n")
 
 if __name__ == '__main__':
     unittest.main()

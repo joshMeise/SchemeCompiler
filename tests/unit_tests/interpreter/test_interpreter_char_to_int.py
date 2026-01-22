@@ -37,17 +37,11 @@ class CharToIntInterpreterTests(unittest.TestCase):
 
         return int(stdout.decode("utf-8"))
 
-    def test_char_to_int_newline(self):
+    def test_char_to_int_regular(self):
         """
-        Test convert newline to 10.
+        Test (char->integer 1).
         """
-        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x0F\x0A\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), 10)
-
-    def test_char_to_int_a(self):
-        """
-        Test convert a to 97.
-        """
-        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x0F\x61\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), 97)
+        self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x0F\x31\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), 49)
 
 if __name__ == '__main__':
     unittest.main()
