@@ -1,0 +1,41 @@
+# test_parser_let.py - tests (let ((a e1) (b e2) ...) en)  parsing
+#
+# Josh Meise
+# 01-21-2026
+# Description:
+#
+
+import unittest
+import sys
+import os
+from compiler.parser import Parser
+
+class LETParseTests(unittest.TestCase):
+    """
+    Unit testing framework for the parsing of (let ((a e1) (b e2) ...) en) .
+    """
+
+    def _parse(self, source: str) -> list:
+        """
+        Parses the provided Scheme source code.
+        Wrapper around Parser class' parse() function.
+
+        Args:
+            source (str): Scheme source code to be parsed.
+
+        Returns:
+            list: [e1, e2, ..., en(offsets from stack)].
+                  Output for the expression
+                  (let ((a 4) (b 5)) (+ a b)) would be
+                  [4, 5, ["+", "o0", "o1"]]
+        """
+        return Parser(source).parse()
+
+    def test_let_one_binding(self):
+        """
+        Test (let ((a 3)) a).
+        """
+        self.assertEqual(self._parse("(let ((a 3)) a)"), [3, "o0"])
+
+if __name__ == '__main__':
+    unittest.main()

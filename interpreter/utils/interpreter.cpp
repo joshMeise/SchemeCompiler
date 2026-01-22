@@ -47,7 +47,9 @@ enum class OpCode : uint64_t {
     GT = 16,
     LEQ = 17,
     GEQ = 18,
-    EQ = 19
+    EQ = 19,
+    POP_JUMP_IF_FALSE = 20,
+    JUMP_OVER_ELSE = 21
 };
 
 // Build insturction out of 4 bytes.
@@ -160,6 +162,14 @@ uint64_t Interpreter::interpret(void) {
                 // Check that values on stack are equal to one another.
                 equal();
                 break;
+            case OpCode::POP_JUMP_IF_FALSE:
+                // Check top value on stack and direct control accordingly.
+                pop_jump_if_false();
+                break;
+            case OpCode::JUMP_OVER_ELSE:
+                // Jump over alternate if condition was satisfied.
+                jump_over_else();
+                break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
                 break;
@@ -191,15 +201,15 @@ uint64_t Interpreter::read_word(void) {
 
 // Push value onto stack.
 void Interpreter::push(uint64_t val) {
-    stack.push(val);
+    stack.push_back(val);
 }
 
 // Pop value from stack.
 uint64_t Interpreter::pop(void) {
     uint64_t val;
 
-    val = stack.top();
-    stack.pop();
+    val = stack.back();
+    stack.pop_back();
 
     return val;
 }
@@ -207,74 +217,74 @@ uint64_t Interpreter::pop(void) {
 // Add 1 to the top value on the stack.
 void Interpreter::add1(void) {
     // Add 4 due to shift.
-    stack.top() += 4;
+    stack.back() += 4;
 }
 
 // Subtract 1 from the top value on the stack.
 void Interpreter::sub1(void) {
     // Subtract 4 due to shift.
-    stack.top() -= 4;
+    stack.back() -= 4;
 }
 
 // Convert top valeu on stack from integer to character by adjusting tag.
 void Interpreter::int_to_char(void) {
     // Shift and retag.
-    stack.top() <<= (CHAR_SHIFT - FIXNUM_SHIFT);
-    stack.top() &= ~CHAR_MASK;
-    stack.top() |= CHAR_TAG;
+    stack.back() <<= (CHAR_SHIFT - FIXNUM_SHIFT);
+    stack.back() &= ~CHAR_MASK;
+    stack.back() |= CHAR_TAG;
 }
 
 // Convert top valeu on stack from character to integer by adjusting tag.
 void Interpreter::char_to_int(void) {
     // Shift and retag.
-    stack.top() >>= (CHAR_SHIFT - FIXNUM_SHIFT);
-    stack.top() &= ~FIXNUM_MASK;
-    stack.top() |= FIXNUM_TAG;
+    stack.back() >>= (CHAR_SHIFT - FIXNUM_SHIFT);
+    stack.back() &= ~FIXNUM_MASK;
+    stack.back() |= FIXNUM_TAG;
 }
 
 // Check if top value on stack is 0.
 void Interpreter::is_zero(void) {
     // If top value is 0, convert to true, else convert to false.
-    if (stack.top() >> FIXNUM_SHIFT == 0)
-        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    if (stack.back() >> FIXNUM_SHIFT == 0)
+        stack.back() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
     else
-        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+        stack.back() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
 }
 
 // Check if top value on stack is ().
 void Interpreter::is_null(void) {
     // If top value is (), convert to true, else convert to false.
-    if ((stack.top() & EMPTY_LIST_MASK) == EMPTY_LIST_TAG)
-        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    if ((stack.back() & EMPTY_LIST_MASK) == EMPTY_LIST_TAG)
+        stack.back() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
     else
-        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+        stack.back() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
 }
 
 // Converts top value on stack to falsy if truthy and to truthy if falsy.
 void Interpreter::invert(void) {
     // The boolean value false is the onl true false value.
-    if (((stack.top() & BOOL_MASK) == BOOL_TAG) && ((stack.top() >> BOOL_SHIFT) == 0))
-        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    if (((stack.back() & BOOL_MASK) == BOOL_TAG) && ((stack.back() >> BOOL_SHIFT) == 0))
+        stack.back() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
     else
-        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+        stack.back() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
 }
 
 // Check if top value on stack is integer.
 void Interpreter::is_int(void) {
     // If top value is an integer, convert to true, else convert to false.
-    if ((stack.top() & FIXNUM_MASK) == FIXNUM_TAG)
-        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    if ((stack.back() & FIXNUM_MASK) == FIXNUM_TAG)
+        stack.back() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
     else
-        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+        stack.back() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
 }
 
 // Check if top value on stack is boolean.
 void Interpreter::is_bool(void) {
     // If top value is a boolean, convert to true, else convert to false.
-    if ((stack.top() & BOOL_MASK) == BOOL_TAG)
-        stack.top() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+    if ((stack.back() & BOOL_MASK) == BOOL_TAG)
+        stack.back() = ((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
     else
-        stack.top() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
+        stack.back() = ((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG;
 }
 
 // Add values on stack leaving result on stack.
@@ -379,5 +389,22 @@ void Interpreter::equal(void) {
     // Compare values and push result onto stack.
     if (val_2 == val_1) push(((1 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
     else push(((0 << BOOL_SHIFT) & ~BOOL_MASK) | BOOL_TAG);
+}
+
+// Move to alternate if test was satisfied.
+void Interpreter::pop_jump_if_false(void) {
+    uint64_t val;
+
+    val = pop();
+
+    // If false on top of stack, jump over consequent; else just mvoe past offset.
+    if (((val & BOOL_MASK) == BOOL_TAG) && (val >> BOOL_SHIFT == 0)) pc += read_word();
+    else pc += 1;
+}
+
+// Move past alternate if test was not satisfied.
+void Interpreter::jump_over_else(void) {
+    // Increment porgram counter by given amount.
+    pc += read_word();
 }
 

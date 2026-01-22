@@ -11,7 +11,6 @@
 #include <stack>
 #include <cstdint>
 #include <vector>
-#include <stack>
 
 class Interpreter {
 public:
@@ -27,7 +26,7 @@ public:
 private:
     // Member variables.
     std::vector<uint64_t> code;
-    std::stack<uint64_t> stack;
+    std::vector<uint64_t> stack;
     int pc;
 
     // Get instruction.
@@ -90,4 +89,9 @@ private:
     // Check that values on stack are equal. Place truthy on stack if so.
     void equal(void);
 
+    // Move to alternate if test was satisfied.
+    void pop_jump_if_false(void);
+
+    // Move past alternate if test was not satisfied.
+    void jump_over_else(void);
 };

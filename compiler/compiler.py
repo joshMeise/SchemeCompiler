@@ -81,6 +81,14 @@ class Compiler:
                     case w if w in UNARY_OPS:
                         self.compile(rest[0])
                         self.emit_symbol(w)
+                    case "if":
+                        self.compile(rest[0])
+                        emit(I.POP_JUMP_IF_FALSE)
+                        emit(get_len(rest[1]) + 2)
+                        self.compile(rest[1])
+                        emit(I.JUMP_OVER_ELSE)
+                        emit(get_len(rest[2]))
+                        self.compile(rest[2])
 
     def compile_function(self, expr):
         """
@@ -145,6 +153,39 @@ class Compiler:
                 emit(I.GEQ)
             case "=":
                 emit(I.EQ)
+
+def get_len(expr) -> int:
+    """
+    Compute bytecode length of a given expression.
+
+    Args:
+        expr: AST for expression.
+
+    Returns:
+        int: Number of instructions in expression's bytecode.
+    """
+    len = 0
+
+    match expr:
+        case c if (c in BINARY_OPS or c in UNARY_OPS):
+            len += 1
+        case "if":
+            len += 4
+        case bool(_):
+            len += 2
+        case int(_):
+            len += 2
+        case str(_):
+            len += 2
+        case []:
+            len += 2
+        case [only]:
+            len += get_len(only)
+        case [first, *rest]:
+            len += get_len(first)
+            len += get_len(rest)
+
+    return len
 
 def box_fixnum(val: int) -> int:
     """
@@ -234,6 +275,8 @@ class I(enum.IntEnum):
     LEQ = enum.auto()
     GEQ = enum.auto()
     EQ = enum.auto()
+    POP_JUMP_IF_FALSE = enum.auto()
+    JUMP_OVER_ELSE = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
@@ -246,4 +289,16 @@ if __name__ == "__main__":
 
     compiler = Compiler()
     compiler.compile_function(['+', ['+', 1 , ["+", 2, 3]], ["+", 4, 5]])
+    print(compiler.code)
+
+    compiler = Compiler()
+    compiler.compile_function(['if', True, ['if', True, 4, 5], 6])
+    print(compiler.code)
+
+    compiler = Compiler()
+    compiler.compile_function(['if', True, 6, ['if', True, 4, 5]])
+    print(compiler.code)
+
+    compiler = Compiler()
+    compiler.compile_function(["if", ["if", True, True, False], ["if", True, 7, 8], ["if", True, 4, 5]])
     print(compiler.code)

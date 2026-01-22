@@ -60,7 +60,7 @@ class Parser:
         self.skip_whitespace()
         match self.peek():
             case '':
-                raise EOFError("Unexpected end of input.")
+                raise EOFError("unexpected end of input.")
             case c if c.isdigit():
                 val = self.parse_number()
             case '#':
@@ -68,12 +68,12 @@ class Parser:
             case '(':
                 val = self.parse_expression()
             case c:
-                raise NotImplementedError(f"Found {c}.")
+                raise NotImplementedError(f"found {c}.")
 
         # Ensure that whitespace follows.
         self.skip_whitespace()
         
-        # If not whitespace or end of input, empty list is of invalid format.
+        # If end of input expression is of invalid format.
         if self.peek() != '':
             raise TypeError("Invalid type.")
 
@@ -140,6 +140,10 @@ class Parser:
                         return self.parse_binary_int_args(">=")
                     case "=":
                         return self.parse_binary_int_args("=")
+                    case "let":
+                        return self.parse_let()
+                    case "if":
+                        return self.parse_if()
                     case w:
                         raise NotImplementedError(f"Expression {w} not implemented.")
 
@@ -287,7 +291,7 @@ class Parser:
 
         return "#\\" + ret_val
 
-    def parse_unary_int_arg(self, exp_name: str) -> str:
+    def parse_unary_int_arg(self, exp_name: str) -> list:
         """
         Parses unary exression (exp_name e) with integer argument from string.
 
@@ -334,7 +338,7 @@ class Parser:
 
         return exp
 
-    def parse_unary_char_arg(self, exp_name: str) -> str:
+    def parse_unary_char_arg(self, exp_name: str) -> list:
         """
         Parses unary exression (exp_name e) with character argument from string.
 
@@ -383,7 +387,7 @@ class Parser:
 
         return exp
 
-    def parse_unary_any_arg(self, exp_name: str) -> str:
+    def parse_unary_any_arg(self, exp_name: str) -> list:
         """
         Parses unary exression (exp_name e) with any type of argument from string.
 
@@ -434,7 +438,7 @@ class Parser:
 
         return exp
 
-    def parse_binary_int_args(self, exp_name: str) -> str:
+    def parse_binary_int_args(self, exp_name: str) -> list:
         """
         Parses binary expression (exp_name e1 e2 ...) with integer arguments from string.
 
@@ -465,7 +469,7 @@ class Parser:
                 exp.append(self.parse_expression())
             case _:
                 raise TypeError(f"Invalid argument to {exp_name} expression.")
-        
+
         # Consume whitespace.
         self.skip_whitespace()
 
@@ -491,6 +495,133 @@ class Parser:
 
         return exp
 
+    def parse_if_helper(self) -> list:
+        """
+        Parses test, consequent and alternate of if expressions.
+
+        Returns:
+            list: AST of expression that has been parsed.
+
+        Raises:
+            NotImplementedError: Invalid leading character is found.
+        """
+        # Consume whitespace.
+        self.skip_whitespace()
+    
+        # Parse expression.
+        match self.peek():
+            case '':
+                raise EOFError("unexpected end of input.")
+            case c if c.isdigit():
+                val = self.parse_number()
+            case '#':
+                val = self.parse_boolean_or_char()
+            case '(':
+                val = self.parse_expression()
+            case c:
+                raise NotImplementedError(f"found {c}.")
+
+        return val
+
+    def parse_if(self) -> list:
+        """
+        Parses conditional statement in the form of (if test conseq altern).
+
+        Returns:
+            list: ["if", test, conseq, altern]
+        """
+        exp = []
+
+        # Add "if" to expression and skip over it.
+        exp.append("if")
+        self.pos += len("if")
+
+        # Parse test, consequent and alternate, respectively.
+        exp.append(self.parse_if_helper())
+        exp.append(self.parse_if_helper())
+        exp.append(self.parse_if_helper())
+
+        # Skip over closing parens.
+        if self.peek() != ')':
+            raise TypeError("Invalid if format.")
+        else:
+            self.pos += 1
+
+        return exp
+
+
+#    def parse_let(self) -> list:
+#        """
+#        Parses let binding in the form of (let ((a e1) (b e2) ...) en).
+#
+#        Returns:
+#            list: [e1, e2, en(with offsets)]
+#        """
+#
+#        exp = []
+#        bindings = []
+#
+#        # Skip over "let".
+#        self.pos += len("let")
+#
+#        # Consume whitepace.
+#        self.skip_whitespace()
+#
+#        # Skip over opening parens for bindings.
+#        if self.peek() != '(':
+#            raise TypeError("Invalid let expression.")
+#
+#        self.pos += 1
+#
+#        # Consume whitespace.
+#        self.skip_whitespace()
+#
+#        # Parse internal expressions.
+#        while self.peek() == '(':
+#            # Skip over opening parens.
+#            self.pos += 1
+#
+#            # Consume whitespace.
+#            self.skip_whitespace()
+#
+#            # Add binding name to list of bindings.
+#            bindings.append(self.peek_word())
+#
+#            # Skip over binding name.
+#            self.pos += len(self.peek_word())
+#
+#            # Comsume whitespace.
+#            self.skip_whitespace()
+#            
+#            # Parse expression and add to AST.
+#            exp.append(self.parse())
+#
+#            # Consume whitespace prior to closing parens.
+#            self.skip_whitespace()
+#
+#            # Skip closing parens of let binding.
+#            if self.peek() == ')':
+#                self.pos += 1
+#            else:
+#                raise TypeError("Invalid argument to let expression.")
+#
+#            # Consume whitespace.
+#            self.skip_whitespace()
+#
+#        # If not closing parens, the expresion is invalid.
+#        if self.peek() != ')':
+#            raise TypeError(f"Invalid argument to let expression.")
+#
+#        # Skip closing parens.
+#        if self.peek() != '' and self.peek() == ')':
+#            self.pos += 1
+#        else:
+#            raise TypeError(f"let expression missing closing parens.")
+#        
+#        print(bindings)
+#
+#        return exp
+
 
 def scheme_parse(source: str) -> list:
     """
@@ -505,4 +636,4 @@ def scheme_parse(source: str) -> list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("   (+ (+ 6 7) (+ (+ 8 9) 10))   "))
+    print(scheme_parse("   (if 4 (+ 4 5) 6)   "))
