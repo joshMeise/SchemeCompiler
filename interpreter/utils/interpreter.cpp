@@ -49,7 +49,10 @@ enum class OpCode : uint64_t {
     GEQ = 18,
     EQ = 19,
     POP_JUMP_IF_FALSE = 20,
-    JUMP_OVER_ELSE = 21
+    JUMP_OVER_ELSE = 21,
+    LET = 22,
+    GET_FROM_ENV = 23,
+    END_LET = 24
 };
 
 // Build insturction out of 4 bytes.
@@ -169,6 +172,18 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::JUMP_OVER_ELSE:
                 // Jump over alternate if condition was satisfied.
                 jump_over_else();
+                break;
+            case OpCode::LET:
+                // Load the given number of values from stack into environment.
+                let();
+                break;
+            case OpCode::GET_FROM_ENV:
+                // Load given value from stack into environment.
+                get_from_env();
+                break;
+            case OpCode::END_LET:
+                // Clean up environment associated with binding.
+                end_let();
                 break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
@@ -408,3 +423,31 @@ void Interpreter::jump_over_else(void) {
     pc += read_word();
 }
 
+// Create a new environment for the binding and load the given number of values from the stack into the environment.
+void Interpreter::let(void) {
+    uint64_t num_bindings;
+    int i;
+
+    // Get number of bindings to load.
+    num_bindings = read_word();
+
+    // Create environment for given number of bindings.
+    env.push_back(std::vector<uint64_t>(num_bindings));
+
+    // Place values from stack into environment.
+    for (i = 0; i < num_bindings; i++)
+        env.back()[num_bindings - i - 1] = pop();
+
+}
+
+// Get a value from the environment onto stack.
+void Interpreter::get_from_env(void) {
+    // Push value from given index of environment onto stack.
+    push(env.back()[read_word()]);
+}
+
+// Clean up binding's environment.
+void Interpreter::end_let(void) {
+    // Remove environment at the back of environment vector.
+    env.pop_back();
+}

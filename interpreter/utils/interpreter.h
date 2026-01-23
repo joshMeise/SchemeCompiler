@@ -28,6 +28,7 @@ private:
     std::vector<uint64_t> code;
     std::vector<uint64_t> stack;
     int pc;
+    std::vector<std::vector<uint64_t>> env;
 
     // Get instruction.
     uint64_t read_word(void);
@@ -94,4 +95,13 @@ private:
 
     // Move past alternate if test was not satisfied.
     void jump_over_else(void);
+    
+    // Create a new environment for the binding and load the given number of values from the stack into the environment.
+    void let(void);
+
+    // Get a value from the environment onto stack.
+    void get_from_env(void);
+
+    // Clean up binding's environment.
+    void end_let(void);
 };

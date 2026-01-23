@@ -4,11 +4,9 @@
 # 01-09-2026
 # Description: 
 #
-# Questions:
-# - Should expr be a list or a value?
-#   - Thoughts are that compile takes an atomic value and compile_function takes a list (full parses expression).
-# - What does env refer to in function signature for compile()?
-#
+# Citations:
+# - ChatGPT for high level assistance on understanding of stack machines.
+# - https://en.wikipedia.org/wiki/Stack_machine
 
 import enum
 from typing import BinaryIO
@@ -47,15 +45,16 @@ class Compiler:
         self.code = []
         self.max_locals_count = 0
 
-    def compile(self, expr):
+    def compile(self, expr, in_let: bool = False):
         """
         Compiles given expression into bytecode.
 
         Args:
             expr: Expression to be compiled.
+            in_let (bool): Indicates whether an expression is in a let statement or not.
         """
         emit = self.code.append
-
+        
         match expr:
             case bool(_):
                 emit(I.LOAD64)
@@ -63,9 +62,14 @@ class Compiler:
             case int(_):
                 emit(I.LOAD64)
                 emit(box_fixnum(expr))
-            case str(_):
-                emit(I.LOAD64)
-                emit(box_char(expr))
+            case str(s):
+                match s[0]:
+                    case "b":
+                        emit(I.GET_FROM_ENV)
+                        emit(int(s[1:]))
+                    case _:
+                        emit(I.LOAD64)
+                        emit(box_char(expr))
             case [only]:
                 self.compile(only)
             case []:
@@ -89,6 +93,14 @@ class Compiler:
                         emit(I.JUMP_OVER_ELSE)
                         emit(get_len(rest[2]))
                         self.compile(rest[2])
+                    case "let":
+                        emit(I.LET)
+                        emit(rest[0])
+                        self.compile(rest[1:])
+                        emit(I.END_LET)
+                    case _:
+                        self.compile(first)
+                        self.compile(rest)
 
     def compile_function(self, expr):
         """
@@ -277,28 +289,12 @@ class I(enum.IntEnum):
     EQ = enum.auto()
     POP_JUMP_IF_FALSE = enum.auto()
     JUMP_OVER_ELSE = enum.auto()
+    LET = enum.auto()
+    GET_FROM_ENV = enum.auto()
+    END_LET = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function(["-", ["-", 4, 2], 1])
+    compiler.compile_function([5, 3, ["let", 2, [2]]])
     print(compiler.code)
 
-    compiler = Compiler()
-    compiler.compile_function(["-", 5, ["-", 3, 1]])
-    print(compiler.code)
-
-    compiler = Compiler()
-    compiler.compile_function(['+', ['+', 1 , ["+", 2, 3]], ["+", 4, 5]])
-    print(compiler.code)
-
-    compiler = Compiler()
-    compiler.compile_function(['if', True, ['if', True, 4, 5], 6])
-    print(compiler.code)
-
-    compiler = Compiler()
-    compiler.compile_function(['if', True, 6, ['if', True, 4, 5]])
-    print(compiler.code)
-
-    compiler = Compiler()
-    compiler.compile_function(["if", ["if", True, True, False], ["if", True, 7, 8], ["if", True, 4, 5]])
-    print(compiler.code)

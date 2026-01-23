@@ -4,20 +4,11 @@
 # 01-08-2026
 # Description: 
 #
-# Currently haev it that we can only accept one expression per line.
-# - Consumes whitespace at end and makes sure we haev reached end of input.
-#
-# TODO: 
-# -Implement bounds checking on integers.
-# - 
-# 
-# Questions:
-# - Does our parse function eventually loop through and parse the whole input?
-# - Should we be able to parse #\newline and equivalent escape sequances as characters?
-# - Should return types of each expression be checked in the parser so that doing something line (add1 (integer->char 3)) is illegal?
-#
+# Citations:
+# - Google's AI tool for the suggestion of the use of regex and then Python's regex documentation for the implementation.
 
 from typing import Union
+import re
 
 WSP = [' ', '\n', '\t', '\r']
 ILLEGAL_CHARS = ['`']
@@ -72,7 +63,7 @@ class Parser:
 
         # Ensure that whitespace follows.
         self.skip_whitespace()
-        
+
         # If end of input expression is of invalid format.
         if self.peek() != '':
             raise TypeError("Invalid type.")
@@ -221,10 +212,6 @@ class Parser:
         # Consume whitespace.
         self.skip_whitespace()
 
-        # If not whitespace or end of input, number is of invalid format.
-        #if self.peek() != '':
-        #    raise TypeError("Invalid number type.")
-
         return num
 
     def parse_boolean_or_char(self) -> Union[str, bool]:
@@ -291,6 +278,32 @@ class Parser:
 
         return "#\\" + ret_val
 
+    def parse_binding(self) -> str:
+        """
+        Parses binding value from string.
+
+        Returns:
+            str: Binding value that has been parsed.
+
+        Raises:
+            TypeError: Non-binding value or illegal binding value found in string.
+        """
+        # Skip over 'b'.
+        self.pos += 1
+
+        # Build ingeter from digit string.
+        num = 0
+        while self.peek().isdigit():
+            num *= 10
+            num += int(self.source[self.pos])
+            self.pos += 1
+        
+        # Ensure that a space or closing parens follows.
+        if self.peek() != ' ' and self.peek() != ')':
+            raise TypeError("Invalid binding name.")
+
+        return "b" + str(num)
+
     def parse_unary_int_arg(self, exp_name: str) -> list:
         """
         Parses unary exression (exp_name e) with integer argument from string.
@@ -320,6 +333,8 @@ class Parser:
             # Append nested expression to list of expression to list of expressions.
             case '(':
                 exp.append(self.parse_expression())
+            case 'b':
+                exp.append(self.parse_binding())
             case _:
                 raise TypeError(f"Invalid argument to {exp_name} expression.")
         
@@ -369,6 +384,8 @@ class Parser:
             # Append nested expression to list of expression to list of expressions.
             case '(':
                 exp.append(self.parse_expression())
+            case 'b':
+                exp.append(self.parse_binding())
             case _:
                 raise TypeError(f"Invalid argument to {exp_name} expression.")
         
@@ -420,6 +437,8 @@ class Parser:
             # Append nested expression to list of expression to list of expressions.
             case '(':
                 exp.append(self.parse_expression())
+            case 'b':
+                exp.append(self.parse_binding())
             case _:
                 raise TypeError(f"Invalid argument to {exp_name} expression.")
         
@@ -467,6 +486,8 @@ class Parser:
             # Append nested expression to list of expression to list of expressions.
             case '(':
                 exp.append(self.parse_expression())
+            case 'b':
+                exp.append(self.parse_binding())
             case _:
                 raise TypeError(f"Invalid argument to {exp_name} expression.")
 
@@ -481,6 +502,8 @@ class Parser:
             # Append nested expression to list of expression to list of expressions.
             case '(':
                 exp.append(self.parse_expression())
+            case 'b':
+                exp.append(self.parse_binding())
             case _:
                 raise TypeError(f"Invalid argument to {exp_name} expression.")
 
@@ -495,7 +518,7 @@ class Parser:
 
         return exp
 
-    def parse_if_helper(self) -> list:
+    def parse_let_and_if_helper(self) -> list:
         """
         Parses test, consequent and alternate of if expressions.
 
@@ -518,8 +541,13 @@ class Parser:
                 val = self.parse_boolean_or_char()
             case '(':
                 val = self.parse_expression()
+            case 'b':
+                val = self.parse_binding()
             case c:
                 raise NotImplementedError(f"found {c}.")
+
+        # Comsume any trailing whitespace.
+        self.skip_whitespace()
 
         return val
 
@@ -537,9 +565,9 @@ class Parser:
         self.pos += len("if")
 
         # Parse test, consequent and alternate, respectively.
-        exp.append(self.parse_if_helper())
-        exp.append(self.parse_if_helper())
-        exp.append(self.parse_if_helper())
+        exp.append(self.parse_let_and_if_helper())
+        exp.append(self.parse_let_and_if_helper())
+        exp.append(self.parse_let_and_if_helper())
 
         # Skip over closing parens.
         if self.peek() != ')':
@@ -549,79 +577,106 @@ class Parser:
 
         return exp
 
+    def parse_let(self) -> list:
+        """
+        Parses a let binding in the form of (let ((a e1) (b e2) ...) en).
 
-#    def parse_let(self) -> list:
-#        """
-#        Parses let binding in the form of (let ((a e1) (b e2) ...) en).
-#
-#        Returns:
-#            list: [e1, e2, en(with offsets)]
-#        """
-#
-#        exp = []
-#        bindings = []
-#
-#        # Skip over "let".
-#        self.pos += len("let")
-#
-#        # Consume whitepace.
-#        self.skip_whitespace()
-#
-#        # Skip over opening parens for bindings.
-#        if self.peek() != '(':
-#            raise TypeError("Invalid let expression.")
-#
-#        self.pos += 1
-#
-#        # Consume whitespace.
-#        self.skip_whitespace()
-#
-#        # Parse internal expressions.
-#        while self.peek() == '(':
-#            # Skip over opening parens.
-#            self.pos += 1
-#
-#            # Consume whitespace.
-#            self.skip_whitespace()
-#
-#            # Add binding name to list of bindings.
-#            bindings.append(self.peek_word())
-#
-#            # Skip over binding name.
-#            self.pos += len(self.peek_word())
-#
-#            # Comsume whitespace.
-#            self.skip_whitespace()
-#            
-#            # Parse expression and add to AST.
-#            exp.append(self.parse())
-#
-#            # Consume whitespace prior to closing parens.
-#            self.skip_whitespace()
-#
-#            # Skip closing parens of let binding.
-#            if self.peek() == ')':
-#                self.pos += 1
-#            else:
-#                raise TypeError("Invalid argument to let expression.")
-#
-#            # Consume whitespace.
-#            self.skip_whitespace()
-#
-#        # If not closing parens, the expresion is invalid.
-#        if self.peek() != ')':
-#            raise TypeError(f"Invalid argument to let expression.")
-#
-#        # Skip closing parens.
-#        if self.peek() != '' and self.peek() == ')':
-#            self.pos += 1
-#        else:
-#            raise TypeError(f"let expression missing closing parens.")
-#        
-#        print(bindings)
-#
-#        return exp
+        Returns:
+            list: [e1, e2, ..., ["let", en(with offsets)]]
+        """
+        exp = []
+        env = []
+        bindings = []
 
+        # Skip over let.
+        self.pos += len("let")
+
+        # Consume whitespace before bindings start.
+        self.skip_whitespace()
+
+        # Skip over parens tht opens bindings.
+        if self.peek() != '(':
+            raise TypeError("Invalid let binding.")
+        else:
+            self.pos += 1
+
+        # Skip whitespace before opening parens of first binding.
+        self.skip_whitespace()
+
+        # Parse all bindings.
+        while self.peek() != ')':
+            # Consume opening parens.
+            if self.peek() != '(':
+                raise TypeError("Invalid let binding.")
+            else:
+                self.pos += 1
+
+            # Skip whitespace before binding name.
+            self.skip_whitespace()
+
+            # Add binding name to list of bindings.
+            name = self.peek_word()
+            if name in bindings:
+                raise TypeError("Invalid let binding.")
+            bindings.append(name)
+            self.pos += len(name)
+
+            # Get AST for expression.
+            exp.append(self.parse_let_and_if_helper())
+
+            # Skip over closing parens.
+            if self.peek() != ')':
+                raise TypeError("Invalid let binding.")
+            else:
+                self.pos += 1
+
+            # Consume any whitespace prior to any potential binding closing.
+            self.skip_whitespace()
+
+        # Skip over closing parens of bindings.
+        if self.peek() != ')':
+            raise TypeError("Invalid let binding.")
+        else:
+            self.pos += 1
+
+        # Replace any references to bindings with the binding code.
+        for i, binding_name in enumerate(bindings):
+            # Define a regex pattern for the old binding name.
+            # r'\b' is used to exclude consideration of parens as part of a word.
+            regex = r'\b' + binding_name + r'\b'
+            
+            # New binding name.
+            binding = f"b{i}"
+            
+            # Replace variable name with binding name.
+            # Only replace in let's body otherwise it throws self.pos off if replacements occur prior to position of self.pos.
+            self.source = self.source[0:self.pos] + re.sub(regex, binding, self.source[self.pos:])
+
+        # Update the length of the string now that bindings have been added.
+        self.length = len(self.source)
+
+        # Add "let" to body portion.
+        env.append("let")
+    
+        # Append number of bindings to env.
+        env.append(len(bindings))
+
+        # Parse body of let.
+        env.append(self.parse_let_and_if_helper())
+
+        # Skip whitespace prior to closing of let binding.
+        self.skip_whitespace()
+
+        # Consume final closing parens of let binding.
+        if self.peek() != ')':
+            raise TypeError("Invalid let binding.")
+        else:
+            self.pos += 1
+
+        # Append body to espression.
+        exp.append(env)
+
+        return exp
 
 def scheme_parse(source: str) -> list:
     """
@@ -636,4 +691,4 @@ def scheme_parse(source: str) -> list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("   (if 4 (+ 4 5) 6)   "))
+    print(scheme_parse("(let ((a 5) (b (+ 4 5)))  (+ (+ a b) b))"))
