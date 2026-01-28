@@ -34,6 +34,12 @@ class EmptyListParseTests(unittest.TestCase):
         """
         self.assertEqual(self._parse("()"), [])
 
+    def test_empty_list_space(self):
+        """
+        Test regular empty list with spaces.
+        """
+        self.assertEqual(self._parse("(     )"), [])
+
     def test_invalid_empty_list(self):
         """
         Tests empty list with character following.

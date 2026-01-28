@@ -30,7 +30,7 @@ ast_node_t* root;
 %token <sval> BOOL CHAR
 %token ADD1 SUB1 INT_TO_CHAR CHAR_TO_INT IS_NULL IS_ZERO NOT IS_INT IS_BOOL PLUS MINUS TIMES LT GT LEQ GEQ EQ
 
-%type <nval> s add1 sub1 int_to_char char_to_int is_null is_zero not is_int is_bool plus minus times lt gt leq geq eq integer boolean character
+%type <nval> s add1 sub1 int_to_char char_to_int is_null is_zero not is_int is_bool plus minus times lt gt leq geq eq integer boolean character empty_list
 
 %start s
 
@@ -39,6 +39,7 @@ ast_node_t* root;
 s: integer                                  { $$ = $1; root = $$; }
  | boolean                                  { $$ = $1; root = $$; }
  | character                                { $$ = $1; root = $$; }
+ | empty_list                               { $$ = $1; root = $$; }
  | add1                                     { $$ = $1; root = $$; }
  | sub1                                     { $$ = $1; root = $$; }
  | int_to_char                              { $$ = $1; root = $$; }
@@ -66,6 +67,9 @@ boolean: BOOL                               { bool val; if (!(strcmp($1, "#t")) 
 
 character: CHAR                             { $$ = create_node(character, (void*)$1, NULL, NULL); free($1); }
          ;
+
+empty_list: '(' ')'                         { $$ = create_node(empty_list, NULL, NULL, NULL); }
+          ;
 
 add1: '(' ADD1 s ')'                        { expr_type_t type = add1; $$ = create_node(expr, (void*)&type, $3, NULL); }
     ;

@@ -12,6 +12,13 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Prints node information to stdout.
+ *
+ * Args:
+ *      - node (ast_node_t*): pointer ot node to print.
+ *
+ */
 static void print_node(ast_node_t* node) {
     switch (node->type) {
         case fixnum:
@@ -25,6 +32,9 @@ static void print_node(ast_node_t* node) {
             if (node->data.character[strlen(node->data.character) - 1] == '\"') printf("\"#\\\\\\\"\"");
             else if (node->data.character[strlen(node->data.character) - 1] == '\n') printf("\"#\\\\\\n\"");
             else printf("\"#\\\\%s\"", node->data.character + 2);
+            break;
+        case empty_list:
+            printf("[]");
             break;
         case expr:
             switch (node->data.expr_type) {
@@ -88,6 +98,39 @@ static void print_node(ast_node_t* node) {
     }
 }
 
+/*
+ * Frees node and any data associated with node.
+ *
+ * Args:
+ *      - node (ast_node_t*): pointer to node to be freed.
+ *
+ */
+static void free_node(ast_node_t* node) {
+    // If node's data was dynamically allocated, free it.
+    switch (node->type) {
+        case character:
+            free(node->data.character);
+            break;
+        default:
+            break;
+    }
+
+    free(node);
+}
+
+/*
+ * Creates a new AST node.
+ *
+ * Args:
+ *      - type (data_type_t): node type
+ *      - data (void*): pointer to type of data contained in node
+ *      - left (ast_node_t*): node's left child.
+ *      - right (ast_node_t*): node's right child.
+ *
+ * Returns:
+ *      - ast_node_t*: pointer to node created.
+ *      - NULL: if error.
+ */
 ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node_t* right) {
     ast_node_t* node;
 
@@ -115,6 +158,8 @@ ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node
                 return NULL;
             }
             strcpy(node->data.character, (char*)data);
+            break;
+        case empty_list:
             break;
         case expr:
             node->data.expr_type = *((expr_type_t*)data);
@@ -152,4 +197,19 @@ void print_tree(ast_node_t* root) {
         print_tree(root->right);
         print_node(root);
     }
+}
+
+/*
+ * Free memory allocated for an AST.
+ * 
+ * Args:
+ *      - root (ast_node_t*): Pointer to root node of AST.
+ *
+ */
+void free_tree(ast_node_t* root) {
+    if (root == NULL) return ;
+
+    free_tree(root->left);
+    free_tree(root->right);
+    free_node(root);
 }

@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     printf("\n");
 
     // Clean up.
+    free_tree(root);
     yylex_destroy();
 
     if (ret == 0) exit(EXIT_SUCCESS);

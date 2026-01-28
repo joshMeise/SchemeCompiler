@@ -35,6 +35,7 @@ typedef enum {
     fixnum,
     boolean,
     character,
+    empty_list,
     expr
 } data_type_t;
 
@@ -52,6 +53,35 @@ typedef struct ast_node {
     struct ast_node* right;
 } ast_node_t;
 
+/*
+ * Creates a new AST node.
+ *
+ * Args:
+ *      - type (data_type_t): node type
+ *      - data (void*): pointer to type of data contained in node
+ *      - left (ast_node_t*): node's left child.
+ *      - right (ast_node_t*): node's right child.
+ *
+ * Returns:
+ *      - ast_node_t*: pointer to node created.
+ *      - NULL: if error.
+ */
 ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node_t* right);
 
+/*
+ * Prints out the AST for a given parse.
+ * 
+ * Args:
+ *      - root (ast_node_t*): Pointer to root node of AST.
+ *
+ */
 void print_tree(ast_node_t* node);
+
+/*
+ * Free memory allocated for an AST.
+ * 
+ * Args:
+ *      - root (ast_node_t*): Pointer to root node of AST.
+ *
+ */
+void free_tree(ast_node_t* root);
