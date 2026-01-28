@@ -23,6 +23,8 @@ int main(int argc, char** argv) {
 
     ret = yyparse();
 
+    if (ret != 0) exit(EXIT_FAILURE);
+
     print_tree(root);
     printf("\n");
 

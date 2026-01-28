@@ -118,7 +118,7 @@ static void free_node(ast_node_t* node) {
             break;
     }
     
-    free(node->children);
+    if (node->children != NULL) free(node->children);
     free(node);
 }
 
@@ -245,8 +245,7 @@ void free_tree(ast_node_t* root) {
 
     if (root == NULL) return ;
     
-    for (i = 0; i < root->num_children; i++) {
+    for (i = 0; i < root->num_children; i++)
         free_tree(root->children[i]);
-        free_node(root);
-    }
+    free_node(root);
 }
