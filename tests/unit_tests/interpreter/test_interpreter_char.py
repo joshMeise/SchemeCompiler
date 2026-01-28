@@ -13,7 +13,8 @@ import sys
 import os
 import subprocess
 
-INTERPRET = "./interpreter/execs/interpret"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INTERPRET = os.path.join(BASE_DIR, "..", "..", "..", "interpreter", "execs", "interpret")
 
 class CharacterInterpreterTests(unittest.TestCase):
     """
