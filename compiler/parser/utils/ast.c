@@ -89,6 +89,9 @@ static void print_node(ast_node_t* node) {
                 case eq:
                     printf("\"=\"");
                     break;
+                case if_e:
+                    printf("\"if\"");
+                    break;
                 default:
                     fprintf(stderr, "Unknown expression type.\n");
             }
@@ -114,7 +117,8 @@ static void free_node(ast_node_t* node) {
         default:
             break;
     }
-
+    
+    free(node->children);
     free(node);
 }
 
@@ -128,10 +132,9 @@ static void free_node(ast_node_t* node) {
  *      - right (ast_node_t*): node's right child.
  *
  * Returns:
- *      - ast_node_t*: pointer to node created.
- *      - NULL: if error.
+ *      - ast_node_t*: pointer to node created, NULL if error.
  */
-ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node_t* right) {
+ast_node_t* create_node(data_type_t type, void* data) {
     ast_node_t* node;
 
     // Create node.
@@ -142,8 +145,8 @@ ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node
 
     // Assign members.
     node->type = type;
-    node->left = left;
-    node->right = right;
+    node->num_children = 0;
+    node->children = NULL;
 
     switch (type) {
         case fixnum:
@@ -174,27 +177,59 @@ ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node
 }
 
 /*
+ * Add child node to AST node.
+ *
+ * Args:
+ *      - parent (ast_node_t*): parent to which to add the child node.
+ *      - child (ast_node_t*): child node to add.
+ *
+ * Returns:
+ *      - int: 0 if success, non-zero if error.
+ */
+int add_child_to_node(ast_node_t* parent, ast_node_t* child) {
+    // Allocate/resize memory for children array.
+    if (parent->num_children == 0) {
+        if ((parent->children = (ast_node_t**)malloc(sizeof(ast_node_t*))) == NULL) {
+            fprintf(stderr, "Memory allocation failed.");
+            return 1;
+        }
+    } else {
+        if ((parent->children = (ast_node_t**)realloc(parent->children, sizeof(ast_node_t*)*(parent->num_children + 1))) == NULL) {
+            fprintf(stderr, "Memory allocation failed.");
+            return 1;
+        }
+    }
+
+    // Add child toa array of children.
+    parent->children[(parent->num_children)++] = child;
+
+    return 0;
+
+}
+
+/*
  * Prints out the AST for a given parse.
  * 
  * Args:
  *      - root (ast_node_t*): Pointer to root node of AST.
- *
  */
 void print_tree(ast_node_t* root) {
-    if (root == NULL)
-        return;
+    int i;
+
+    if (root == NULL) return;
 
     if (root->type == expr) {
         printf("[");
         print_node(root);
         printf(", ");
-        print_tree(root->left);
-        if (root->right != NULL) printf(", ");
-        print_tree(root->right);
+
+        for (i = 0; i < root->num_children; i++) {
+            print_tree(root->children[i]);
+            if (i != root->num_children - 1) printf(", ");
+        }
         printf("]");
     } else {
-        print_tree(root->left);
-        print_tree(root->right);
+        for (i = 0; i < root->num_children; i++) print_tree(root->children[i]);
         print_node(root);
     }
 }
@@ -204,12 +239,14 @@ void print_tree(ast_node_t* root) {
  * 
  * Args:
  *      - root (ast_node_t*): Pointer to root node of AST.
- *
  */
 void free_tree(ast_node_t* root) {
-    if (root == NULL) return ;
+    int i;
 
-    free_tree(root->left);
-    free_tree(root->right);
-    free_node(root);
+    if (root == NULL) return ;
+    
+    for (i = 0; i < root->num_children; i++) {
+        free_tree(root->children[i]);
+        free_node(root);
+    }
 }

@@ -1,9 +1,10 @@
 /*
- * ast.h - 
+ * ast.h - builds AST for Scheme expression
  *
  * Josh Meise
  * 01-26-2026
- * Description: 
+ * Description:
+ * Functions to be caled in Bison parser for Scheme to build AST.
  *
  */
 
@@ -28,7 +29,8 @@ typedef enum {
     gt,
     leq,
     geq,
-    eq
+    eq,
+    if_e
 } expr_type_t;
 
 typedef enum {
@@ -49,8 +51,8 @@ typedef union {
 typedef struct ast_node {
     data_t data;
     data_type_t type;
-    struct ast_node* left;
-    struct ast_node* right;
+    int num_children;
+    struct ast_node** children;
 } ast_node_t;
 
 /*
@@ -59,21 +61,29 @@ typedef struct ast_node {
  * Args:
  *      - type (data_type_t): node type
  *      - data (void*): pointer to type of data contained in node
- *      - left (ast_node_t*): node's left child.
- *      - right (ast_node_t*): node's right child.
  *
  * Returns:
- *      - ast_node_t*: pointer to node created.
- *      - NULL: if error.
+ *      - ast_node_t*: pointer to node created, NULL if error.
  */
-ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node_t* right);
+ast_node_t* create_node(data_type_t type, void* data);
+
+/*
+ * Add child to AST node.
+ *
+ * Args:
+ *      - parent (ast_node_t*): parent to which to add the child node.
+ *      - child (ast_node_t*): child node to add.
+ *
+ * Returns:
+ *      - int: 0 if success, non-zero if error.
+ */
+int add_child_to_node(ast_node_t* parent, ast_node_t* child);
 
 /*
  * Prints out the AST for a given parse.
  * 
  * Args:
  *      - root (ast_node_t*): Pointer to root node of AST.
- *
  */
 void print_tree(ast_node_t* node);
 
@@ -82,6 +92,5 @@ void print_tree(ast_node_t* node);
  * 
  * Args:
  *      - root (ast_node_t*): Pointer to root node of AST.
- *
  */
 void free_tree(ast_node_t* root);

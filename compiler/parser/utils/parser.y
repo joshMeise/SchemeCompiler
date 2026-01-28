@@ -28,9 +28,9 @@ ast_node_t* root;
 
 %token <ival> NUMBER
 %token <sval> BOOL CHAR
-%token ADD1 SUB1 INT_TO_CHAR CHAR_TO_INT IS_NULL IS_ZERO NOT IS_INT IS_BOOL PLUS MINUS TIMES LT GT LEQ GEQ EQ
+%token ADD1 SUB1 INT_TO_CHAR CHAR_TO_INT IS_NULL IS_ZERO NOT IS_INT IS_BOOL PLUS MINUS TIMES LT GT LEQ GEQ EQ IF
 
-%type <nval> s add1 sub1 int_to_char char_to_int is_null is_zero not is_int is_bool plus minus times lt gt leq geq eq integer boolean character empty_list
+%type <nval> s add1 sub1 int_to_char char_to_int is_null is_zero not is_int is_bool plus minus times lt gt leq geq eq integer boolean character empty_list if
 
 %start s
 
@@ -57,70 +57,74 @@ s: integer                                  { $$ = $1; root = $$; }
  | leq                                      { $$ = $1; root = $$; }
  | geq                                      { $$ = $1; root = $$; }
  | eq                                       { $$ = $1; root = $$; }
+ | if                                       { $$ = $1; root = $$; }
  ;
 
-integer: NUMBER                             { uint64_t data = $1; $$ = create_node(fixnum, (void*)&data, NULL, NULL); }
+integer: NUMBER                             { uint64_t data = $1; $$ = create_node(fixnum, (void*)&data); }
        ;
 
-boolean: BOOL                               { bool val; if (!(strcmp($1, "#t")) || !strcmp($1, "#T")) val = true; else val = false; $$ = create_node(boolean, (void*)&val, NULL, NULL); free($1); }
+boolean: BOOL                               { bool val; if (!(strcmp($1, "#t")) || !strcmp($1, "#T")) val = true; else val = false; $$ = create_node(boolean, (void*)&val); free($1); }
        ;
 
-character: CHAR                             { $$ = create_node(character, (void*)$1, NULL, NULL); free($1); }
+character: CHAR                             { $$ = create_node(character, (void*)$1); free($1); }
          ;
 
-empty_list: '(' ')'                         { $$ = create_node(empty_list, NULL, NULL, NULL); }
+empty_list: '(' ')'                         { $$ = create_node(empty_list, NULL); }
           ;
 
-add1: '(' ADD1 s ')'                        { expr_type_t type = add1; $$ = create_node(expr, (void*)&type, $3, NULL); }
+add1: '(' ADD1 s ')'                        { expr_type_t type = add1; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
     ;
 
-sub1: '(' SUB1 s ')'                        { expr_type_t type = sub1; $$ = create_node(expr, (void*)&type, $3, NULL); }
+sub1: '(' SUB1 s ')'                        { expr_type_t type = sub1; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
     ;
 
-int_to_char: '(' INT_TO_CHAR s ')'          { expr_type_t type = int_to_char; $$ = create_node(expr, (void*)&type, $3, NULL); }
+int_to_char: '(' INT_TO_CHAR s ')'          { expr_type_t type = int_to_char; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
            ;
 
-char_to_int: '(' CHAR_TO_INT s ')'          { expr_type_t type = char_to_int; $$ = create_node(expr, (void*)&type, $3, NULL); }
+char_to_int: '(' CHAR_TO_INT s ')'          { expr_type_t type = char_to_int; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
            ;
 
-is_null: '(' IS_NULL s ')'                  { expr_type_t type = is_null; $$ = create_node(expr, (void*)&type, $3, NULL); }
+is_null: '(' IS_NULL s ')'                  { expr_type_t type = is_null; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
        ;
 
-is_zero: '(' IS_ZERO s ')'                  { expr_type_t type = is_zero; $$ = create_node(expr, (void*)&type, $3, NULL); }
+is_zero: '(' IS_ZERO s ')'                  { expr_type_t type = is_zero; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
        ;
 
-not: '(' NOT s ')'                          { expr_type_t type = not_e; $$ = create_node(expr, (void*)&type, $3, NULL); }
+not: '(' NOT s ')'                          { expr_type_t type = not_e; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
    ;
 
-is_int: '(' IS_INT s ')'                    { expr_type_t type = is_int; $$ = create_node(expr, (void*)&type, $3, NULL); }
+is_int: '(' IS_INT s ')'                    { expr_type_t type = is_int; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
       ;
 
-is_bool: '(' IS_BOOL s ')'                  { expr_type_t type = is_bool; $$ = create_node(expr, (void*)&type, $3, NULL); }
+is_bool: '(' IS_BOOL s ')'                  { expr_type_t type = is_bool; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); }
        ;
 
-plus: '(' PLUS s s ')'                      { expr_type_t type = plus; $$ = create_node(expr, (void*)&type, $3, $4); }
+plus: '(' PLUS s s ')'                      { expr_type_t type = plus; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
     ;
 
-minus: '(' MINUS s s ')'                    { expr_type_t type = minus; $$ = create_node(expr, (void*)&type, $3, $4); }
+minus: '(' MINUS s s ')'                    { expr_type_t type = minus; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
      ;
 
-times: '(' TIMES s s ')'                    { expr_type_t type = times; $$ = create_node(expr, (void*)&type, $3, $4); }
+times: '(' TIMES s s ')'                    { expr_type_t type = times; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
      ;
 
-lt: '(' LT s s ')'                          { expr_type_t type = lt; $$ = create_node(expr, (void*)&type, $3, $4); }
+lt: '(' LT s s ')'                          { expr_type_t type = lt; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
   ;
 
-gt: '(' GT s s ')'                          { expr_type_t type = gt; $$ = create_node(expr, (void*)&type, $3, $4); }
+gt: '(' GT s s ')'                          { expr_type_t type = gt; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
   ;
 
-leq: '(' LEQ s s ')'                        { expr_type_t type = leq; $$ = create_node(expr, (void*)&type, $3, $4); }
+leq: '(' LEQ s s ')'                        { expr_type_t type = leq; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
    ; 
 
-geq: '(' GEQ s s ')'                        { expr_type_t type = geq; $$ = create_node(expr, (void*)&type, $3, $4); }
+geq: '(' GEQ s s ')'                        { expr_type_t type = geq; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
    ; 
 
-eq: '(' EQ s s ')'                          { expr_type_t type = eq; $$ = create_node(expr, (void*)&type, $3, $4); }
+eq: '(' EQ s s ')'                          { expr_type_t type = eq; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); }
     ; 
+
+if: '(' IF s s s ')'                        { expr_type_t type = if_e; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); add_child_to_node($$, $5); }
+    ;
 
 %%
 

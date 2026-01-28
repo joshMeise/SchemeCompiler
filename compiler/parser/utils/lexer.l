@@ -39,6 +39,7 @@
 "<="                            { return LEQ; }
 ">="                            { return GEQ; }
 "="                             { return EQ; }
+"if"                            { return IF; }
 [ \r\t\n]
 .                               { return yytext[0]; }
 
