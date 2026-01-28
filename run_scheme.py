@@ -9,6 +9,7 @@
 #
 # Citations:
 # - ChatGPT and python docs for help with subprocess.
+# - ChatGPT for help using __file__ to allow this script to be run from any directory.
 #
 
 import sys
@@ -16,8 +17,12 @@ import subprocess
 from io import StringIO
 
 ARGC = [1, 2, 3]
-INTERPRETER_UTILS_DIR = "./interpreter/utils/"
-INTERPRETER_EXECS_DIR = "./interpreter/execs/"
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INTERPRETER_EXECS_DIR = os.path.join(BASE_DIR, "interpreter", "utils")
+INTERPRETER_EXECS_DIR = os.path.join(BASE_DIR, "interpreter", "execs")
+PARSER_UTILS_DIR = os.path.join(BASE_DIR, "compiler", "parser", "utils")
+PARSER_EXECS_DIR = os.path.join(BASE_DIR, "compiler", "parser", "execs")
 
 if __name__ == "__main__":
     ret_code = 0
@@ -28,9 +33,29 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Build interpreter.
-    subprocess.run(["make clean; make"], cwd = INTERPRETER_UTILS_DIR, check = True, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-    subprocess.run(["make clean; make"], cwd = INTERPRETER_EXECS_DIR, check = True, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    make_utils = subprocess.run(["make clean; make"], cwd = INTERPRETER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    make_execs = subprocess.run(["make clean; make"], cwd = INTERPRETER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    
+    if make_utils.returncode != 0:
+        print("Failed to build interpreter library.")
+        sys.exit(1)
 
+    if make_execs.returncode != 0:
+        print("Failed to build interpreter executables.")
+        sys.exit(1)
+
+    # Build parser.
+    make_utils = subprocess.run(["make clean; make"], cwd = PARSER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    make_execs = subprocess.run(["make clean; make"], cwd = PARSER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    
+    if make_utils.returncode != 0:
+        print("Failed to build parser library.")
+        sys.exit(1)
+
+    if make_execs.returncode != 0:
+        print("Failed to build parser executables.")
+        sys.exit(1)
+    
     # Compile with no input (uses stdin) and interpret with no output (uses stdout).
     if len(sys.argv) == 1:
         # Open pipe between compiler and interpreter.
@@ -111,8 +136,24 @@ if __name__ == "__main__":
         ret_code = 1
 
     # Clean up interpreter.
-    subprocess.run(["make clean"], cwd = INTERPRETER_UTILS_DIR, check = True, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-    subprocess.run(["make clean"], cwd = INTERPRETER_EXECS_DIR, check = True, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    clean_utils = subprocess.run(["make clean"], cwd = INTERPRETER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    clean_execs = subprocess.run(["make clean"], cwd = INTERPRETER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
     
+    if clean_utils.returncode != 0:
+        print("Failed to clean interpreter library.")
+    
+    if clean_execs.returncode != 0:
+        print("Failed to clean interpreter executables.")
+
+    # Clean parser.
+    clean_utils = subprocess.run(["make clean"], cwd = PARSER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    clean_execs = subprocess.run(["make clean"], cwd = PARSER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    
+    if clean_utils.returncode != 0:
+        print("Failed to clean parser library.")
+    
+    if clean_execs.returncode != 0:
+        print("Failed to clean parser executables.")
+
     # Exit with apprpriate return code.
     sys.exit(ret_code)

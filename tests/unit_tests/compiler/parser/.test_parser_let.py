@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class LetParseTests(unittest.TestCase):
     """
@@ -26,7 +26,7 @@ class LetParseTests(unittest.TestCase):
         Returns:
             list: ["if", test, conseq, altern]
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_let_one_binding_unused(self):
         """

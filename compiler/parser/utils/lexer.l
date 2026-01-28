@@ -20,7 +20,7 @@
 %%
 
 [0-9]+                          { yylval.ival = atoi(yytext); return NUMBER; }
-"#t"|"#f"                       { yylval.sval = strdup(yytext); return BOOL; }
+"#t"|"#f"|"#T"|"#F"             { yylval.sval = strdup(yytext); return BOOL; }
 "#\\"[^`]                       { yylval.sval = strdup(yytext); return CHAR; }
 "add1"                          { return ADD1; }
 "sub1"                          { return SUB1; }

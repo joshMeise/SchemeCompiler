@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class NotParseTests(unittest.TestCase):
     """
@@ -26,7 +26,7 @@ class NotParseTests(unittest.TestCase):
         Returns:
             list: ["not", integer].
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_not_zero(self):
         """
@@ -44,7 +44,7 @@ class NotParseTests(unittest.TestCase):
         """
         Test (not 0) with trailing character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(not 0)a")
 
     def test_not_char(self):

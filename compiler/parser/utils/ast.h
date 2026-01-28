@@ -34,12 +34,14 @@ typedef enum {
 typedef enum {
     fixnum,
     boolean,
+    character,
     expr
 } data_type_t;
 
 typedef union {
     bool bool_val;
     uint64_t fixnum_val;
+    char* character;
     expr_type_t expr_type;
 } data_t;
 

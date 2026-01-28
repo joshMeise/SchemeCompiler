@@ -12,6 +12,9 @@ from pathlib import Path
 ARGC = [1]
 INTERPRETER_UTILS_DIR = "./interpreter/utils/"
 INTERPRETER_EXECS_DIR = "./interpreter/execs/"
+PARSER_UTILS_DIR = "./compiler/parser/utils/"
+PARSER_EXECS_DIR = "./compiler/parser/execs/"
+
 
 if __name__ == "__main__":
     # Parse arguments.
@@ -31,6 +34,18 @@ if __name__ == "__main__":
         print("Failed to build interpreter executables.")
         sys.exit(1)
 
+    # Build parser.
+    make_utils = subprocess.run(["make clean; make"], cwd = PARSER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    make_execs = subprocess.run(["make clean; make"], cwd = PARSER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    
+    if make_utils.returncode != 0:
+        print("Failed to build parser library.")
+        sys.exit(1)
+
+    if make_execs.returncode != 0:
+        print("Failed to build parser executables.")
+        sys.exit(1)
+
     # Run python unit tests.
     print("Running tests...")
     
@@ -38,8 +53,8 @@ if __name__ == "__main__":
     
     if unit_tests.returncode != 0:
         print("Tests failed.")
-        print("Run \"python3 -m unittest discover -s tests\" in SchemeCompiler directory for further details.")
-        print("Ensure that the interpreter has been built prior to running that command.");
+        print("Run \"python3 -m unittest discover -s tests\" for further details.")
+        print("Ensure that the parser and interpreter have been built prior to running that command.");
     else:
         print("Tests passed.")
 
@@ -49,10 +64,17 @@ if __name__ == "__main__":
     
     if clean_utils.returncode != 0:
         print("Failed to clean interpreter library.")
-        sys.exit(1)
     
     if clean_execs.returncode != 0:
         print("Failed to clean interpreter executables.")
-        sys.exit(1)
 
+    # Clean parser.
+    clean_utils = subprocess.run(["make clean"], cwd = PARSER_UTILS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    clean_execs = subprocess.run(["make clean"], cwd = PARSER_EXECS_DIR, shell = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    
+    if clean_utils.returncode != 0:
+        print("Failed to clean parser library.")
+    
+    if clean_execs.returncode != 0:
+        print("Failed to clean parser executables.")
 

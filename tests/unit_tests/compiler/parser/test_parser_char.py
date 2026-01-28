@@ -9,7 +9,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class CharacterParseTests(unittest.TestCase):
     """
@@ -27,7 +27,7 @@ class CharacterParseTests(unittest.TestCase):
         Returns:
             str: Character value parsed by function.
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_a(self):
         """
@@ -57,28 +57,28 @@ class CharacterParseTests(unittest.TestCase):
         """
         Test '`'.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("#\\`")
 
     def test_no_hash(self):
         """
         Test no piund sign.
         """
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(RuntimeError):
             self._parse("\\a")
 
     def test_no_backslash(self):
         """
         Test no backslash.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("#a")
 
     def test_string(self):
         """
         Test more than one character after backslash.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("#\\ab")
 
 if __name__ == '__main__':

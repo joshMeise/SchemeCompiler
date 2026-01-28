@@ -2,13 +2,12 @@ CFLAGS=-Wall -Wpedantic
 CC=gcc
 BISON=bison
 FLEX=flex
-OFILES=ast.o parser.tab.o lex.yy.o parser_exec.o
-EXEC=parser_exec
+OFILES=ast.o parser.tab.o lex.yy.o
 
-all: $(EXEC)
+all: ../lib/libutils.a
 
-$(EXEC): $(OFILES)
-	$(CC) $(CFLAGS) $^ -o $@
+../lib/libutils.a: $(OFILES)
+	ar cr ../lib/libutils.a $(OFILES)
 
 parser.tab.c parser.tab.h: parser.y
 	$(BISON) -d parser.y
@@ -20,4 +19,4 @@ lex.yy.c: lexer.l parser.tab.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -rf *.o parser.tab.c parser.tab.h lex.yy.c $(EXEC)
+	rm -rf *.o parser.tab.c parser.tab.h lex.yy.c ../lib/libutils.a

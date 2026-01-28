@@ -10,6 +10,7 @@
 #include "ast.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 static void print_node(ast_node_t* node) {
     switch (node->type) {
@@ -19,6 +20,11 @@ static void print_node(ast_node_t* node) {
         case boolean:
             if (node->data.bool_val) printf("True");
             else printf("False ");
+            break;
+        case character:
+            if (node->data.character[strlen(node->data.character) - 1] == '\"') printf("\"#\\\\\\\"\"");
+            else if (node->data.character[strlen(node->data.character) - 1] == '\n') printf("\"#\\\\\\n\"");
+            else printf("\"#\\\\%s\"", node->data.character + 2);
             break;
         case expr:
             switch (node->data.expr_type) {
@@ -102,6 +108,13 @@ ast_node_t* create_node(data_type_t type, void* data, ast_node_t* left, ast_node
             break;
         case boolean:
             node->data.bool_val = *((bool*)data);
+            break;
+        case character:
+            if ((node->data.character = (char*)malloc(sizeof(char)*(strlen((char*)data) + 1))) == NULL) {
+                fprintf(stderr, "Memory allocation failed.\n");
+                return NULL;
+            }
+            strcpy(node->data.character, (char*)data);
             break;
         case expr:
             node->data.expr_type = *((expr_type_t*)data);
