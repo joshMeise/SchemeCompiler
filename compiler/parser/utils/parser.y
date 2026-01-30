@@ -27,10 +27,10 @@ ast_node_t* root;
 }
 
 %token <ival> NUMBER
-%token <sval> BOOL CHAR
-%token ADD1 SUB1 INT_TO_CHAR CHAR_TO_INT IS_NULL IS_ZERO NOT IS_INT IS_BOOL PLUS MINUS TIMES LT GT LEQ GEQ EQ IF
+%token <sval> BOOL CHAR IDENTIFIER
+%token ADD1 SUB1 INT_TO_CHAR CHAR_TO_INT IS_NULL IS_ZERO NOT IS_INT IS_BOOL PLUS MINUS TIMES LT GT LEQ GEQ EQ IF LET
 
-%type <nval> s add1 sub1 int_to_char char_to_int is_null is_zero not is_int is_bool plus minus times lt gt leq geq eq integer boolean character empty_list if
+%type <nval> s add1 sub1 int_to_char char_to_int is_null is_zero not is_int is_bool plus minus times lt gt leq geq eq integer boolean character empty_list if let
 
 %start s
 
@@ -58,6 +58,7 @@ s: integer                                  { $$ = $1; root = $$; }
  | geq                                      { $$ = $1; root = $$; }
  | eq                                       { $$ = $1; root = $$; }
  | if                                       { $$ = $1; root = $$; }
+ | let                                      { $$ = $1; root = $$; }
  ;
 
 integer: NUMBER                             { uint64_t data = $1; $$ = create_node(fixnum, (void*)&data); }
@@ -125,6 +126,16 @@ eq: '(' EQ s s ')'                          { expr_type_t type = eq; $$ = create
 
 if: '(' IF s s s ')'                        { expr_type_t type = if_e; $$ = create_node(expr, (void*)&type); add_child_to_node($$, $3); add_child_to_node($$, $4); add_child_to_node($$, $5); }
     ;
+
+let: '(' LET '(' bindings ')' s ')'         { printf("HERE\n"); }
+   ;
+
+bindings: bindings binding                  { printf("HORO\n"); }
+        | binding
+        ;
+
+binding: '(' IDENTIFIER s ')'
+       ;
 
 %%
 

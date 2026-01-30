@@ -40,6 +40,8 @@
 ">="                            { return GEQ; }
 "="                             { return EQ; }
 "if"                            { return IF; }
+"let"                           { return LET; }
+[a-zA-Z]+                       { yylval.sval = strdup(yytext); return IDENTIFIER; }
 [ \r\t\n]
 .                               { return yytext[0]; }
 
