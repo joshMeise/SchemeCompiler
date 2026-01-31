@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class IsIntParseTests(unittest.TestCase):
     """
@@ -26,7 +26,7 @@ class IsIntParseTests(unittest.TestCase):
         Returns:
             list: ["integer?", integer].
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_is_int_zero(self):
         """
@@ -44,7 +44,7 @@ class IsIntParseTests(unittest.TestCase):
         """
         Test (integer? 0) with trailing character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(integer? 0)a")
 
     def test_is_int_char(self):

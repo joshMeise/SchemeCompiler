@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class LTParseTests(unittest.TestCase):
     """
@@ -26,20 +26,20 @@ class LTParseTests(unittest.TestCase):
         Returns:
             list: ["<", e1, e2].
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_lt_zero_args(self):
         """
         Test (<).
         """
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(RuntimeError):
             self._parse("(<)")
 
     def test_lt_one_arg(self):
         """
         Test (< 1).
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(< 1)")
 
     def test_lt_two_args(self):
@@ -58,14 +58,14 @@ class LTParseTests(unittest.TestCase):
         """
         Test (< 1 2) with trailing character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(< 1 2)a")
 
     def test_lt_three_args(self):
         """
         Tests (< 1 2 3)..
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(< 1 2 3)")
 
     def test_lt_first_nested(self):
@@ -90,28 +90,28 @@ class LTParseTests(unittest.TestCase):
         """
         Tests (< (< 1 2) (< 3 4) 5).
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(< (< 1 2) (< 3 4) 5)")
 
     def test_lt_first_nested_three_args(self):
         """
         Tests (< (< 1 2) 3 5).
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(< (< 1 2) 3 5)")
 
     def test_lt_second_nested_three_args(self):
         """
         Tests (< 1 (< 2 3) 5).
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(< 1 (< 2 3) 5)")
 
     def test_lt_no_closing_parens(self):
         """
         Tests (< 1 2.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(< 1 2")
 
 if __name__ == '__main__':

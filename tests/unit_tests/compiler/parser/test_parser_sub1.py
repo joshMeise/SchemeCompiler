@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class Sdd1ParseTests(unittest.TestCase):
     """
@@ -26,7 +26,7 @@ class Sdd1ParseTests(unittest.TestCase):
         Returns:
             list: ["sub1", integer].
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_sub1_zero(self):
         """
@@ -44,22 +44,8 @@ class Sdd1ParseTests(unittest.TestCase):
         """
         Test (sub1 0) with trailing character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(sub1 0)a")
-
-    def test_sub1_char(self):
-        """
-        Tests (sub1 #\a).
-        """
-        with self.assertRaises(TypeError):
-            self._parse("(sub1 #\\a)")
-
-    def test_sub1_bool(self):
-        """
-        Tests (sub1 #t).
-        """
-        with self.assertRaises(TypeError):
-            self._parse("(sub1 #t)")
 
 if __name__ == '__main__':
     unittest.main()

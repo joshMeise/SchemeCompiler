@@ -8,10 +8,12 @@
 import sys
 import subprocess
 from pathlib import Path
+import os
 
 ARGC = [1]
-INTERPRETER_UTILS_DIR = "./interpreter/utils/"
-INTERPRETER_EXECS_DIR = "./interpreter/execs/"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INTERPRETER_UTILS_DIR = os.path.join(BASE_DIR, "interpreter", "utils")
+INTERPRETER_EXECS_DIR = os.path.join(BASE_DIR, "interpreter", "execs")
 
 if __name__ == "__main__":
     # Parse arguments.

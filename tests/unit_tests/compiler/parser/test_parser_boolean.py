@@ -9,7 +9,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class BooleanParseTests(unittest.TestCase):
     """
@@ -27,7 +27,7 @@ class BooleanParseTests(unittest.TestCase):
         Returns:
             bool: Boolean value parsed by function.
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_regular_true(self):
         """
@@ -93,21 +93,21 @@ class BooleanParseTests(unittest.TestCase):
         """
         Test pound sign followed by invalid character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("#l")
 
     def test_invalid_string(self):
         """
         Test pound sign followed by ,ore than one character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("#tf")
 
     def test_leading_char(self):
         """
         Test no leading pound sign.
         """
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(RuntimeError):
             self._parse("tf")
 
 if __name__ == '__main__':
