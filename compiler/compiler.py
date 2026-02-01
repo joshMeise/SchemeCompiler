@@ -23,6 +23,18 @@ CHAR_MASK = 255
 EMPTY_LIST_SHIFT = 8
 EMPTY_LIST_TAG = 47
 EMPTY_LIST_MASK = 255
+VECTOR_SHIFT = 3
+VECTOR_TAG = 2
+VECTOR_MASK = 7
+STRING_SHIFT = 3
+STRING_TAG = 3
+STRING_MASK = 7
+SYMBOL_SHIFT = 3
+SYMBOL_TAG = 5
+SYMBOL_MASK = 7
+CLOSURE_SHIFT = 3
+CLOSURE_TAG = 6
+CLOSURE_MASK = 7
 
 UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?"]
 BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "="]
@@ -98,6 +110,10 @@ class Compiler:
                         emit(rest[0])
                         self.compile(rest[1:])
                         emit(I.END_LET)
+                    case "cons":
+                        self.compile(rest[1])
+                        self.compile(rest[0])
+                        emit(I.CONS)
                     case _:
                         self.compile(first)
                         self.compile(rest)
@@ -165,6 +181,8 @@ class Compiler:
                 emit(I.GEQ)
             case "=":
                 emit(I.EQ)
+            case "cons":
+                emit(I.CONS)
 
 def get_len(expr) -> int:
     """
@@ -292,6 +310,7 @@ class I(enum.IntEnum):
     LET = enum.auto()
     GET_FROM_ENV = enum.auto()
     END_LET = enum.auto()
+    CONS = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()

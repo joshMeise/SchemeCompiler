@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # Run python unit tests.
     print("Running tests...")
     
-    unit_tests = subprocess.run(["python3", "-m", "unittest", "discover", "-s", "tests"], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+    unit_tests = subprocess.run(["python3", "-m", "unittest", "discover", "-s", "tests"])
     
     if unit_tests.returncode != 0:
         print("Tests failed.")

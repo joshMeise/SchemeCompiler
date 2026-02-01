@@ -8,22 +8,6 @@
  */
 
 #include "utilities.h"
-#include <format>
-
-/*
- * Define shift, mask, and tag values for all types.
- */
-#define FIXNUM_MASK 3
-#define FIXNUM_TAG 0
-#define FIXNUM_SHIFT 2
-#define BOOL_MASK 127
-#define BOOL_TAG 31
-#define BOOL_SHIFT 7
-#define CHAR_MASK 255
-#define CHAR_TAG 15
-#define CHAR_SHIFT 8
-#define EMPTY_LIST_MASK 255
-#define EMPTY_LIST_TAG 47
 
 /*
  * Parses program arguments and sets input and output.
@@ -110,29 +94,4 @@ int parse_args(int argc, char** argv, std::ifstream& ifile, std::istream*& input
     }
 
     return 0;
-}
-
-/*
- * Prints out value returned by interpreter.
- * Checks type of value and prints based on type.
- *
- * Args:
- * - val (uint64_t): tagged pointer returned by interpreter
- * - output (std::ostream*&): reference to pointer to output stream to which to print
- *
- */
-void print_val(uint64_t val, std::ostream*& output) {
-    if ((val & FIXNUM_MASK) == FIXNUM_TAG)
-        *output << (val >> FIXNUM_SHIFT) << std::endl;
-    else if ((val & BOOL_MASK) == BOOL_TAG)
-        if (val >> BOOL_SHIFT == 1) *output << "#t" << std::endl;
-        else if (val >> BOOL_SHIFT == 0) *output << "#f" << std::endl;
-        else *output << "Error.\n";
-    else if ((val & CHAR_MASK) == CHAR_TAG) {
-        if ((val >> CHAR_SHIFT) == '\n') *output << "#\\newline\n";
-        else *output << std::format("#\\{:c}\n", (val >> CHAR_SHIFT));
-    } 
-    else if ((val & EMPTY_LIST_MASK) == EMPTY_LIST_TAG) *output << "()\n";
-    else
-        *output << "Error.\n";
 }

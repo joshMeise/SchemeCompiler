@@ -26,6 +26,9 @@
 #define BOOL_TAG 31
 #define EMPTY_LIST_MASK 255
 #define EMPTY_LIST_TAG 47
+#define PAIR_SHIFT 3
+#define PAIR_MASK 7
+#define PAIR_TAG 1
 
 // enumerations of opcodes.
 enum class OpCode : uint64_t {
@@ -52,7 +55,8 @@ enum class OpCode : uint64_t {
     JUMP_OVER_ELSE = 21,
     LET = 22,
     GET_FROM_ENV = 23,
-    END_LET = 24
+    END_LET = 24,
+    CONS = 25
 };
 
 // Build insturction out of 4 bytes.
@@ -71,8 +75,25 @@ static uint64_t word_from_bytes(std::span<uint8_t> slice) {
 
 // Default constructor.
 Interpreter::Interpreter(void) {
-    // Initialize program counter.
+    // Initialize program counter and heap pointer.
     pc = 0;
+    heap_ptr = 0;
+}
+
+// Construct interpreter based on a byte stream.
+Interpreter::Interpreter(std::vector<uint8_t>& bytes) {
+    int i;
+    uint64_t word;
+
+    // Add instructions to vector contsining code.
+    for (i = 0; i < static_cast<int>(bytes.size()); i+= BPI) {
+        word = word_from_bytes(std::span<uint8_t>(bytes.begin() + i, BPI));
+        code.push_back(word);
+    }
+
+    // Initialize program counter and heap pointer.
+    pc = 0;
+    heap_ptr = 0;
 }
 
 // Interpret a program, return once it reaches a return instruction.
@@ -185,6 +206,10 @@ uint64_t Interpreter::interpret(void) {
                 // Clean up environment associated with binding.
                 end_let();
                 break;
+            case OpCode::CONS:
+                // Create cons cell on heap.
+                create_cons();
+                break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
                 break;
@@ -194,19 +219,28 @@ uint64_t Interpreter::interpret(void) {
     return val;
 }
 
-// Construct interpreter based on a byte stream.
-Interpreter::Interpreter(std::vector<uint8_t>& bytes) {
-    int i;
-    uint64_t word;
-
-    // Add instructions to vector contsining code.
-    for (i = 0; i < static_cast<int>(bytes.size()); i+= BPI) {
-        word = word_from_bytes(std::span<uint8_t>(bytes.begin() + i, BPI));
-        code.push_back(word);
+// Prints out value returned by interpreter.
+void Interpreter::print_val(uint64_t val, std::ostream*& output) {
+    if ((val & FIXNUM_MASK) == FIXNUM_TAG)
+        *output << (val >> FIXNUM_SHIFT);
+    else if ((val & BOOL_MASK) == BOOL_TAG)
+        if (val >> BOOL_SHIFT == 1) *output << "#t";
+        else if (val >> BOOL_SHIFT == 0) *output << "#f";
+        else *output << "Error.\n";
+    else if ((val & CHAR_MASK) == CHAR_TAG) {
+        if ((val >> CHAR_SHIFT) == '\n') *output << "#\\newline";
+        else *output << std::format("#\\{:c}", (val >> CHAR_SHIFT));
+    } 
+    else if ((val & EMPTY_LIST_MASK) == EMPTY_LIST_TAG) *output << "()";
+    else if ((val & PAIR_MASK) == PAIR_TAG) {
+        *output << "(";
+        print_val(heap[val >> PAIR_SHIFT], output);
+        *output << " . ";
+        print_val(heap[(val >> PAIR_SHIFT) + 1], output);
+        *output << ")";
     }
-
-    // Initialize program counter.
-    pc = 0;
+    else
+        *output << "Error.\n";
 }
 
 // Get instruction from stack.
@@ -450,4 +484,17 @@ void Interpreter::get_from_env(void) {
 void Interpreter::end_let(void) {
     // Remove environment at the back of environment vector.
     env.pop_back();
+}
+
+// Create cons cell.
+void Interpreter::create_cons(void) {
+    // Pop values off stack and place onto heap.
+    heap.push_back(pop());
+    heap.push_back(pop());
+
+    // Place cons cell's heap location onto stack.
+    push(((heap_ptr << PAIR_SHIFT) & ~PAIR_MASK) | PAIR_TAG);
+
+    // Increment heap pointer.
+    heap_ptr += 2;
 }

@@ -11,6 +11,7 @@
 #include <stack>
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 class Interpreter {
 public:
@@ -23,12 +24,17 @@ public:
     // Interpret program.
     uint64_t interpret(void);
 
+    // Print out value.
+    void print_val(uint64_t val, std::ostream*& output);
+
 private:
     // Member variables.
     std::vector<uint64_t> code;
     std::vector<uint64_t> stack;
     int pc;
     std::vector<std::vector<uint64_t>> env;
+    std::vector<uint64_t> heap;
+    uint64_t heap_ptr;
 
     // Get instruction.
     uint64_t read_word(void);
@@ -104,4 +110,7 @@ private:
 
     // Clean up binding's environment.
     void end_let(void);
+
+    // Create cons cell.
+    void create_cons(void);
 };
