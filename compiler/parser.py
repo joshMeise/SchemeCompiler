@@ -4,6 +4,9 @@
 # 01-30-2026
 # Description: 
 #
+# Citations:
+# - GeminiAI for re.DOTALL to get string to include newline.
+#
 
 import enum
 import re
@@ -137,6 +140,9 @@ class Parser:
             case _ if t := re.match(r"cdr", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.CDR
+            case _ if t := re.match(r"string", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR
             case _:
                 raise RuntimeError("Unrecognized token.")
 
@@ -172,6 +178,25 @@ class Parser:
                 self.text = t.group(0)
             case _:
                 raise RuntimeError("Illegal identifier.")
+
+    def get_string(self):
+        """
+        Matches a string literal in the input string.
+        Sets text attribute to variable name.
+
+        Raises:
+            RuntimeError: String not found or end of input.
+        """
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        match self.source[self.pos:]:
+            case _ if self.pos == self.length:
+                raise RuntimeError("Unexpected end of input.")
+            case _ if t := re.match(r"\".*\"", self.source[self.pos:], re.DOTALL):
+                self.text = t.group(0)
+            case _:
+                raise RuntimeError("String not found.")
 
     def parse(self) -> int | str | bool | list:
         """
@@ -273,6 +298,8 @@ class Parser:
                 ast = self.parse_ternary()
             case Token.CP:
                 ast = []
+            case Token.STR:
+                ast = self.parse_string()
             case _:
                 raise RuntimeError(f"Unexpected token {self.text}")
 
@@ -379,6 +406,32 @@ class Parser:
 
         return ast
 
+    def parse_string(self) -> list:
+        """
+        Parses Scheme string literal.
+
+        Returns:
+            list: String's AST.
+
+        Raises:
+            RuntimeError: Unexpected token received.
+        """
+        # Insert function name.
+        ast = [self.text]
+
+        # Consume function name.
+        self.match()
+        
+        # Get string lietral from source.
+        self.get_string()
+        
+        ast.append(self.text)
+
+        # Consume string.
+        self.match()
+
+        return ast
+
 #    def parse_let(self) -> list:
 #        """
 #        Parses let expression's bindings and expression.
@@ -476,6 +529,7 @@ class Token(enum.IntEnum):
     CONS = enum.auto()
     CAR = enum.auto()
     CDR = enum.auto()
+    STR = enum.auto()
 
 def scheme_parse(source: str) -> int | bool | str | list:
     """
@@ -485,4 +539,3 @@ def scheme_parse(source: str) -> int | bool | str | list:
         int | str | bool | list : AST containing expressions that have been parsed.
     """
     return Parser(source).parse()
-
