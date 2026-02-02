@@ -5,6 +5,9 @@
  * 01-16-2026
  * Description: 
  *
+ * Implementation notes;
+ * - Characters in string are untagged and placed straight from instructions onto heap (not going via stack).
+ *
  */
 
 #include "interpreter.h"
@@ -29,6 +32,9 @@
 #define PAIR_SHIFT 3
 #define PAIR_MASK 7
 #define PAIR_TAG 1
+#define STR_SHIFT 3
+#define STR_MASK 7
+#define STR_TAG 3
 
 // enumerations of opcodes.
 enum class OpCode : uint64_t {
@@ -58,7 +64,8 @@ enum class OpCode : uint64_t {
     END_LET = 24,
     CONS = 25,
     CAR = 26,
-    CDR = 27
+    CDR = 27,
+    STR = 28
 };
 
 // Build insturction out of 4 bytes.
@@ -106,10 +113,10 @@ uint64_t Interpreter::interpret(void) {
     do {
         // Read instruction.
         word = read_word();
-        
+
         // Case value to instruction.
         instr = static_cast<OpCode>(word);
-        
+
         switch (instr) {
             case OpCode::LOAD64:
                 // Get the next word from the code and push onto the stack.
@@ -220,6 +227,10 @@ uint64_t Interpreter::interpret(void) {
                 // Get second value from corresponding cons cell.
                 cdr();
                 break;
+            case OpCode::STR:
+                // Place string contents onto heap.
+                create_str();
+                break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
                 break;
@@ -231,6 +242,8 @@ uint64_t Interpreter::interpret(void) {
 
 // Prints out value returned by interpreter.
 void Interpreter::print_val(uint64_t val, std::ostream*& output) {
+    uint64_t i;
+
     if ((val & FIXNUM_MASK) == FIXNUM_TAG)
         *output << (val >> FIXNUM_SHIFT);
     else if ((val & BOOL_MASK) == BOOL_TAG)
@@ -248,6 +261,11 @@ void Interpreter::print_val(uint64_t val, std::ostream*& output) {
         *output << " . ";
         print_val(heap[(val >> PAIR_SHIFT) + 1], output);
         *output << ")";
+    }
+    else if ((val & STR_MASK) == STR_TAG) {
+        *output << "\"";
+        for (i = 1; i <= heap[val >> STR_SHIFT]; i++) *output << static_cast<char>(heap[(val >> STR_SHIFT) + i]);
+        *output << "\"";
     }
     else
         *output << "Error.\n";
@@ -535,4 +553,24 @@ void Interpreter::cdr(void) {
 
     // Push car value onto stack.
     push(heap[heap_ind + 1]);
+}
+
+// Place string contents onto heap and address of string onto stack.
+void Interpreter::create_str(void) {
+    uint64_t len, i;
+
+    // Get string length.
+    len = read_word();
+
+    // Place length onto heap.
+    heap.push_back(len);
+
+    // Place characters onto heap.
+    for (i = 0; i < len; i++) heap.push_back(read_word());
+
+    // Place location of string in heap onto stack.
+    push(((heap_ptr << STR_SHIFT) & ~STR_MASK) | STR_TAG);
+
+    // Advance heap ppinter.
+    heap_ptr += (len + 1);
 }

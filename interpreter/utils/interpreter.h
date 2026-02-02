@@ -120,4 +120,7 @@ private:
     // Place second value in corresponding cons cell onto stack.
     void cdr(void);
 
+    // Place string contents onto heap and address of string onto stack.
+    void create_str(void);
+
 };
