@@ -114,6 +114,9 @@ class Compiler:
                         self.compile(rest[1])
                         self.compile(rest[0])
                         emit(I.CONS)
+                    case "string":
+                        emit(I.STR)
+                        self.emit_string(rest[0])
                     case _:
                         self.compile(first)
                         self.compile(rest)
@@ -185,6 +188,21 @@ class Compiler:
                 emit(I.CAR)
             case "cdr":
                 emit(I.CDR)
+
+    def emit_string(self, string: str):
+        """
+        Converts string into bytes.
+
+        Args:
+            string (str): String to be compiled (including openign and closing quotes).
+        """
+        emit = self.code.append
+
+        # Emit string length excluding quotes.
+        emit(len(string) - 2)
+
+        for char in string[1:-1]:
+            emit(ord(char))
 
 def get_len(expr) -> int:
     """
@@ -315,9 +333,10 @@ class I(enum.IntEnum):
     CONS = enum.auto()
     CAR = enum.auto()
     CDR = enum.auto()
+    STR = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function([5, 3, ["let", 2, [2]]])
+    compiler.compile_function(["string", "hi"])
     print(compiler.code)
 

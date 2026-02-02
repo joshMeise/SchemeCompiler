@@ -30,7 +30,7 @@ class StringParseTests(unittest.TestCase):
 
     def test_string_regular(self):
         """
-        Test (strgin "hi").
+        Test (string "hi").
         """
         self.assertEqual(self._parse("(string \"hi\")"), ["string", "\"hi\""])
 
