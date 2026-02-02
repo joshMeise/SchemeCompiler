@@ -56,7 +56,9 @@ enum class OpCode : uint64_t {
     LET = 22,
     GET_FROM_ENV = 23,
     END_LET = 24,
-    CONS = 25
+    CONS = 25,
+    CAR = 26,
+    CDR = 27
 };
 
 // Build insturction out of 4 bytes.
@@ -209,6 +211,14 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::CONS:
                 // Create cons cell on heap.
                 create_cons();
+                break;
+            case OpCode::CAR:
+                // Pull first value in corresponding cons cell.
+                car();
+                break;
+            case OpCode::CDR:
+                // Get second value from corresponding cons cell.
+                cdr();
                 break;
             default:
                 throw std::logic_error("Opcode not yet implemented");
@@ -497,4 +507,32 @@ void Interpreter::create_cons(void) {
 
     // Increment heap pointer.
     heap_ptr += 2;
+}
+
+// Place first value in corresponding cons cell onto stack.
+void Interpreter::car(void) {
+    uint64_t cons, heap_ind;
+
+    // Read value of corresponding cons cell from stack.
+    cons = pop();
+
+    // Extract heap location.
+    heap_ind = cons >> PAIR_SHIFT;
+
+    // Push car value onto stack.
+    push(heap[heap_ind]);
+}
+
+// Place second value in corresponding cons cell onto stack.
+void Interpreter::cdr(void) {
+    uint64_t cons, heap_ind;
+
+    // Read value of corresponding cons cell from stack.
+    cons = pop();
+
+    // Extract heap location.
+    heap_ind = cons >> PAIR_SHIFT;
+
+    // Push car value onto stack.
+    push(heap[heap_ind + 1]);
 }

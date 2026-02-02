@@ -113,4 +113,11 @@ private:
 
     // Create cons cell.
     void create_cons(void);
+
+    // Place first value in corresponding cons cell onto stack.
+    void car(void);
+
+    // Place second value in corresponding cons cell onto stack.
+    void cdr(void);
+
 };

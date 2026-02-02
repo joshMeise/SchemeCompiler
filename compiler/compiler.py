@@ -36,7 +36,7 @@ CLOSURE_SHIFT = 3
 CLOSURE_TAG = 6
 CLOSURE_MASK = 7
 
-UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?"]
+UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "car", "cdr"]
 BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "="]
 
 class Compiler:
@@ -181,8 +181,10 @@ class Compiler:
                 emit(I.GEQ)
             case "=":
                 emit(I.EQ)
-            case "cons":
-                emit(I.CONS)
+            case "car":
+                emit(I.CAR)
+            case "cdr":
+                emit(I.CDR)
 
 def get_len(expr) -> int:
     """
@@ -311,6 +313,8 @@ class I(enum.IntEnum):
     GET_FROM_ENV = enum.auto()
     END_LET = enum.auto()
     CONS = enum.auto()
+    CAR = enum.auto()
+    CDR = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()

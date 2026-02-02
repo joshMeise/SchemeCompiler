@@ -1,7 +1,7 @@
-# test_parser_plus.py - tests (+ e1 e2) parsing
+# test_parser_cons.py - tests (cons e1 e2) parsing
 #
 # Josh Meise
-# 01-21-2026
+# 02/01-2026
 # Description:
 #
 
@@ -12,7 +12,7 @@ from compiler.parser import *
 
 class ConsParseTests(unittest.TestCase):
     """
-    Unit testing framework for the parsing of (+ e1 e2).
+    Unit testing framework for the parsing of (cons e1 e2).
     """
 
     def _parse(self, source: str) -> list:
@@ -24,95 +24,95 @@ class ConsParseTests(unittest.TestCase):
             source (str): Scheme source code to be parsed.
 
         Returns:
-            list: ["+", e1, e2].
+            list: ["cons", e1, e2].
         """
         return scheme_parse(source)
 
-    def test_plus_zero_args(self):
+    def test_cons_zero_args(self):
         """
-        Test (+).
-        """
-        with self.assertRaises(RuntimeError):
-            self._parse("(+)")
-
-    def test_plus_one_arg(self):
-        """
-        Test (+ 1).
+        Test (cons).
         """
         with self.assertRaises(RuntimeError):
-            self._parse("(+ 1)")
+            self._parse("(cons)")
 
-    def test_plus_two_args(self):
+    def test_cons_one_arg(self):
         """
-        Test (+ 1 2).
-        """
-        self.assertEqual(self._parse("(+ 1 2)"), ["+", 1, 2])
-
-    def test_plus_two_args_whitespace(self):
-        """
-        Test (+ 1 2) with whitespace.
-        """
-        self.assertEqual(self._parse("    (   +   1    2   )     "), ["+", 1, 2])
-
-    def test_plus_two_args_invalid(self):
-        """
-        Test (+ 1 2) with trailing character.
+        Test (cons 1).
         """
         with self.assertRaises(RuntimeError):
-            self._parse("(+ 1 2)a")
+            self._parse("(cons 1)")
 
-    def test_plus_three_args(self):
+    def test_cons_two_args(self):
         """
-        Tests (+ 1 2 3)..
+        Test (cons 1 2).
+        """
+        self.assertEqual(self._parse("(cons 1 2)"), ["cons", 1, 2])
+
+    def test_cons_two_args_whitespace(self):
+        """
+        Test (cons 1 2) with whitespace.
+        """
+        self.assertEqual(self._parse("    (   cons   1    2   )     "), ["cons", 1, 2])
+
+    def test_cons_two_args_invalid(self):
+        """
+        Test (cons 1 2) with trailing character.
         """
         with self.assertRaises(RuntimeError):
-            self._parse("(+ 1 2 3)")
+            self._parse("(cons 1 2)a")
 
-    def test_plus_first_nested(self):
+    def test_cons_three_args(self):
         """
-        Tests (+ (+ 1 2) 3).
-        """
-        self.assertEqual(self._parse("(+ (+ 1 2) 3)"), ["+", ["+", 1, 2], 3])
-
-    def test_plus_second_nested(self):
-        """
-        Tests (+ 1 (+ 2 3)).
-        """
-        self.assertEqual(self._parse("(+ 1 (+ 2 3))"), ["+", 1, ["+", 2, 3]])
-
-    def test_plus_both_nested(self):
-        """
-        Tests (+ (+ 1 2) (+ 3 4)).
-        """
-        self.assertEqual(self._parse("(+ (+ 1 2) (+ 3 4))"), ["+", ["+", 1, 2], ["+", 3, 4]])
-
-    def test_plus_both_nested_three_args(self):
-        """
-        Tests (+ (+ 1 2) (+ 3 4) 5).
+        Tests (cons 1 2 3)..
         """
         with self.assertRaises(RuntimeError):
-            self._parse("(+ (+ 1 2) (+ 3 4) 5)")
+            self._parse("(cons 1 2 3)")
 
-    def test_plus_first_nested_three_args(self):
+    def test_cons_first_nested(self):
         """
-        Tests (+ (+ 1 2) 3 5).
+        Tests (cons (cons 1 2) 3).
+        """
+        self.assertEqual(self._parse("(cons (cons 1 2) 3)"), ["cons", ["cons", 1, 2], 3])
+
+    def test_cons_second_nested(self):
+        """
+        Tests (cons 1 (cons 2 3)).
+        """
+        self.assertEqual(self._parse("(cons 1 (cons 2 3))"), ["cons", 1, ["cons", 2, 3]])
+
+    def test_cons_both_nested(self):
+        """
+        Tests (cons (cons 1 2) (cons 3 4)).
+        """
+        self.assertEqual(self._parse("(cons (cons 1 2) (cons 3 4))"), ["cons", ["cons", 1, 2], ["cons", 3, 4]])
+
+    def test_cons_both_nested_three_args(self):
+        """
+        Tests (cons (cons 1 2) (cons 3 4) 5).
         """
         with self.assertRaises(RuntimeError):
-            self._parse("(+ (+ 1 2) 3 5)")
+            self._parse("(cons (cons 1 2) (cons 3 4) 5)")
 
-    def test_plus_second_nested_three_args(self):
+    def test_cons_first_nested_three_args(self):
         """
-        Tests (+ 1 (+ 2 3) 5).
+        Tests (cons (cons 1 2) 3 5).
         """
         with self.assertRaises(RuntimeError):
-            self._parse("(+ 1 (+ 2 3) 5)")
+            self._parse("(cons (cons 1 2) 3 5)")
 
-    def test_plus_no_closing_parens(self):
+    def test_cons_second_nested_three_args(self):
         """
-        Tests (+ 1 2.
+        Tests (cons 1 (cons 2 3) 5).
         """
         with self.assertRaises(RuntimeError):
-            self._parse("(+ 1 2")
+            self._parse("(cons 1 (cons 2 3) 5)")
+
+    def test_cons_no_closing_parens(self):
+        """
+        Tests (cons 1 2.
+        """
+        with self.assertRaises(RuntimeError):
+            self._parse("(cons 1 2")
 
 if __name__ == '__main__':
     unittest.main()

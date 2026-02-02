@@ -131,6 +131,12 @@ class Parser:
             case _ if t := re.match(r"cons", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.CONS
+            case _ if t := re.match(r"car", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CAR
+            case _ if t := re.match(r"cdr", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CDR
             case _:
                 raise RuntimeError("Unrecognized token.")
 
@@ -259,7 +265,7 @@ class Parser:
         self.match()
 
         match self.get_token():
-            case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL]:
+            case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
                 ast = self.parse_unary()
             case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS]:
                 ast = self.parse_binary()
@@ -468,6 +474,8 @@ class Token(enum.IntEnum):
     IF = enum.auto()
     LET = enum.auto()
     CONS = enum.auto()
+    CAR = enum.auto()
+    CDR = enum.auto()
 
 def scheme_parse(source: str) -> int | bool | str | list:
     """

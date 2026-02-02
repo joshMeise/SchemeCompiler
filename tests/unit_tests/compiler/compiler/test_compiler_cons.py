@@ -1,7 +1,7 @@
-# test_compiler_cons.py cons tests compilation of (cons e1 e2 ...) expression
+# test_compiler_cons.py - tests compilation of (cons e1 e2) expression
 #
 # Josh Meise
-# 01-20-2026
+# 02-01-2026
 # Description:
 #
 
@@ -13,7 +13,7 @@ from compiler.compiler import Compiler
 
 class ConsCompileTests(unittest.TestCase):
     """
-    Unit testing framework for the compiling of (cons e1 e2 ...) expressions.
+    Unit testing framework for the compiling of (cons e1 e2) expressions.
     """
 
     def _compile(self, expr: list) -> bytes:

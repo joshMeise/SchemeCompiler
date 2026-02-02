@@ -1,7 +1,7 @@
-# test_interpterer_cons.py cons tests interpretation of (cons e1 e2 ...)
+# test_interpterer_cons.py - tests interpretation of (cons e1 e2)
 #
 # Josh Meise
-# 01-09-2026
+# 02-01-2026
 # Description:
 #
 # Citations:
@@ -18,7 +18,7 @@ INTERPRET = os.path.join(BASE_DIR, "..", "..", "..", "interpreter", "execs", "in
 
 class ConsInterpreterTests(unittest.TestCase):
     """
-    Unit testing framework for interpreting (cons e1 e2 ..).
+    Unit testing framework for interpreting (cons e1 e2).
     """
     def _interpret(self, source: bytes) -> str:
         """
