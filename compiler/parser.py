@@ -146,9 +146,24 @@ class Parser:
             case _ if t := re.match(r"string\-set\!", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.STR_SET
+            case _ if t := re.match(r"string\-append", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR_APP
             case _ if t := re.match(r"string", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.STR
+            case _ if t := re.match(r"vector\-ref", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC_REF
+            case _ if t := re.match(r"vector\-set\!", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC_SET
+            case _ if t := re.match(r"vector\-append", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC_APP
+            case _ if t := re.match(r"vector", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC
             case _:
                 raise RuntimeError("Unrecognized token.")
 
@@ -199,7 +214,7 @@ class Parser:
         match self.source[self.pos:]:
             case _ if self.pos == self.length:
                 raise RuntimeError("Unexpected end of input.")
-            case _ if t := re.match(r"\".*\"", self.source[self.pos:], re.DOTALL):
+            case _ if t := re.match(r"\"[^\"]*\"?", self.source[self.pos:], re.DOTALL):
                 self.text = t.group(0)
             case _:
                 raise RuntimeError("String not found.")
@@ -298,10 +313,12 @@ class Parser:
         match self.get_token():
             case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
                 ast = self.parse_unary()
-            case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF]:
+            case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
                 ast = self.parse_binary()
-            case _ if self.get_token() in [Token.IF, Token.STR_SET]:
+            case _ if self.get_token() in [Token.IF, Token.STR_SET, Token.VEC_SET]:
                 ast = self.parse_ternary()
+            case Token.VEC:
+                ast = self.parse_variable_arity()
             case Token.CP:
                 ast = []
             case Token.STR:
@@ -409,6 +426,37 @@ class Parser:
                 case _:
                     raise RuntimeError(f"Unexpected token {self.text}")
             i += 1
+
+        return ast
+
+    def parse_variable_arity(self) -> list:
+        """
+        Parses Scheme function with variable arity from string.
+
+        Returns:
+            list: Expression's AST.
+
+        Raises:
+            RuntimeError: Unexpected token received.
+        """
+        # Insert function name.
+        ast = [self.text]
+
+        # Consume function name.
+        self.match()
+
+        while self.get_token() != Token.CP:
+            match self.get_token():
+                case Token.INT:
+                    ast.append(self.parse_int())
+                case Token.CHAR:
+                    ast.append(self.parse_char())
+                case Token.BOOL:
+                    ast.append(self.parse_bool())
+                case Token.OP:
+                    ast.append(self.parse_expr())
+                case _:
+                    raise RuntimeError(f"Unexpected token {self.text}")
 
         return ast
 
@@ -538,6 +586,11 @@ class Token(enum.IntEnum):
     STR = enum.auto()
     STR_REF = enum.auto()
     STR_SET = enum.auto()
+    STR_APP = enum.auto()
+    VEC = enum.auto()
+    VEC_REF = enum.auto()
+    VEC_SET = enum.auto()
+    VEC_APP = enum.auto()
 
 def scheme_parse(source: str) -> int | bool | str | list:
     """
@@ -547,3 +600,6 @@ def scheme_parse(source: str) -> int | bool | str | list:
         int | str | bool | list : AST containing expressions that have been parsed.
     """
     return Parser(source).parse()
+
+if __name__ == "__main__":
+    scheme_parse("(vector 1)")
