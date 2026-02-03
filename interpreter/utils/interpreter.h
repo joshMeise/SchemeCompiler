@@ -123,4 +123,10 @@ private:
     // Place string contents onto heap and address of string onto stack.
     void create_str(void);
 
+    // Place character at given location on top of stack.
+    void str_ref(void);
+
+    // Set character at given location to given value and place string location on top of stack.
+    void str_set(void);
+
 };

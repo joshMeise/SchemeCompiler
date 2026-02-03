@@ -140,6 +140,12 @@ class Parser:
             case _ if t := re.match(r"cdr", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.CDR
+            case _ if t := re.match(r"string\-ref", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR_REF
+            case _ if t := re.match(r"string\-set\!", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR_SET
             case _ if t := re.match(r"string", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.STR
@@ -292,9 +298,9 @@ class Parser:
         match self.get_token():
             case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
                 ast = self.parse_unary()
-            case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS]:
+            case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF]:
                 ast = self.parse_binary()
-            case Token.IF:
+            case _ if self.get_token() in [Token.IF, Token.STR_SET]:
                 ast = self.parse_ternary()
             case Token.CP:
                 ast = []
@@ -530,6 +536,8 @@ class Token(enum.IntEnum):
     CAR = enum.auto()
     CDR = enum.auto()
     STR = enum.auto()
+    STR_REF = enum.auto()
+    STR_SET = enum.auto()
 
 def scheme_parse(source: str) -> int | bool | str | list:
     """

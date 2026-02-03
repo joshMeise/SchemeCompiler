@@ -65,7 +65,9 @@ enum class OpCode : uint64_t {
     CONS = 25,
     CAR = 26,
     CDR = 27,
-    STR = 28
+    STR = 28,
+    STR_REF = 29,
+    STR_SET = 30
 };
 
 // Build insturction out of 4 bytes.
@@ -231,8 +233,16 @@ uint64_t Interpreter::interpret(void) {
                 // Place string contents onto heap.
                 create_str();
                 break;
+            case OpCode::STR_REF:
+                // Get character from string.
+                str_ref();
+                break;
+            case OpCode::STR_SET:
+                // Set character in string.
+                str_set();
+                break;
             default:
-                throw std::logic_error("Opcode not yet implemented");
+                throw std::runtime_error("Opcode not yet implemented.\n");
                 break;
         }
     } while (instr != OpCode::RETURN);
@@ -268,7 +278,7 @@ void Interpreter::print_val(uint64_t val, std::ostream*& output) {
         *output << "\"";
     }
     else
-        *output << "Error.\n";
+        throw std::runtime_error("Invlaid type.\n");
 }
 
 // Get instruction from stack.
@@ -574,3 +584,46 @@ void Interpreter::create_str(void) {
     // Advance heap ppinter.
     heap_ptr += (len + 1);
 }
+
+// Place character at given location on top of stack.
+void Interpreter::str_ref(void) {
+    uint64_t loc, str_loc, val;
+
+    // Get location off the top of the stack.
+    loc = pop() >> FIXNUM_SHIFT;
+
+    // Get string location off the stack.
+    str_loc = pop() >> STR_SHIFT;
+
+    // Ensure location is within string.
+    if (loc >= heap[str_loc]) throw std::runtime_error("Invalid index.\n");
+
+    // Set character at location and place onto stack.
+    val = heap[str_loc + loc + 1];
+
+    push(((val << CHAR_SHIFT) & ~CHAR_MASK) | CHAR_TAG);
+}
+
+// Set character at given location to given value and place string location on top of stack.
+void Interpreter::str_set(void) {
+    uint64_t loc, str_loc, val;
+
+    // Get character value from stack.
+    val = pop() >> CHAR_SHIFT;
+
+    // Get string index from stack.
+    loc = pop() >> FIXNUM_SHIFT;
+
+    // Get string's heap index from stack.
+    str_loc = pop() >> STR_SHIFT;
+
+    // Ensure location is within string.
+    if (loc >= heap[str_loc]) throw std::runtime_error("Invalid index.\n");
+
+    // Set character at location and place onto stack.
+    heap[str_loc + loc + 1] = val;
+
+    // Place string's heap value back onto stack.
+    push(((str_loc << STR_SHIFT) & ~STR_MASK) | STR_TAG);
+}
+

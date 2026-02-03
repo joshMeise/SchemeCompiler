@@ -37,7 +37,8 @@ CLOSURE_TAG = 6
 CLOSURE_MASK = 7
 
 UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "car", "cdr"]
-BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "="]
+BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "=", "string-ref"]
+TERNARY_OPS = ["string-set!"]
 
 class Compiler:
     """
@@ -96,6 +97,11 @@ class Compiler:
                         self.emit_symbol(o)
                     case w if w in UNARY_OPS:
                         self.compile(rest[0])
+                        self.emit_symbol(w)
+                    case w if w in TERNARY_OPS:
+                        self.compile(rest[0])
+                        self.compile(rest[1])
+                        self.compile(rest[2])
                         self.emit_symbol(w)
                     case "if":
                         self.compile(rest[0])
@@ -188,6 +194,10 @@ class Compiler:
                 emit(I.CAR)
             case "cdr":
                 emit(I.CDR)
+            case "string-ref":
+                emit(I.STR_REF)
+            case "string-set!":
+                emit(I.STR_SET)
 
     def emit_string(self, string: str):
         """
@@ -334,6 +344,8 @@ class I(enum.IntEnum):
     CAR = enum.auto()
     CDR = enum.auto()
     STR = enum.auto()
+    STR_REF = enum.auto()
+    STR_SET = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
