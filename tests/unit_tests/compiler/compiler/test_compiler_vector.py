@@ -1,0 +1,68 @@
+# test_compiler_vector.py - tests compilation of (vector e1 e2 ...) expression
+#
+# Josh Meise
+# 02-03-2026
+# Description:
+#
+
+from io import BytesIO
+import unittest
+import sys
+import os
+from compiler.compiler import Compiler
+
+class StringCompileTests(unittest.TestCase):
+    """
+    Unit testing framework for the compiling of (vector e1 e2 ...) expressions.
+    """
+
+    def _compile(self, expr: list) -> bytes:
+        """
+        Compiles the provided expression.
+        Wrapper around Compile class' compile_function() and write_to_stream() functions.
+        Writes compiled code to provided output stream.
+
+        Args:
+            expr (list): Expression to be compiled.
+        
+        Return:
+            bytes: Bytes object containing compiled code.
+        """
+        buf = BytesIO()
+        c = Compiler()
+        c.compile_function(expr)
+        c.write_to_stream(buf)
+        return buf.getvalue()
+
+    def test_vector_zero_items(self):
+        """
+        Test (vector).
+        """
+        self.assertEqual(self._compile(["vector"]), b"\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+
+    def test_vector_one_item(self):
+        """
+        Test (vector 1).
+        """
+        self.assertEqual(self._compile(["vector", 1]), b"\x20\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+
+    def test_vector_two_items(self):
+        """
+        Test (vector 1 (string "hi")).
+        """
+        self.assertEqual(self._compile(["vector", 1, ["string", "\"hi\""]]), b"\x20\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x1C\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x68\x00\x00\x00\x00\x00\x00\x00\x69\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+
+    def test_vector_three_items(self):
+        """
+        Test (vector 1 (string "hi") #t).
+        """
+        self.assertEqual(self._compile(["vector", 1, ["string", "\"hi\""], True]), b"\x20\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x1C\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x68\x00\x00\x00\x00\x00\x00\x00\x69\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x9F\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+
+    def test_vector_nested(self):
+        """
+        Test (vector 1 (vector 2)).
+        """
+        self.assertEqual(self._compile(["vector", 1, ["vector", 2]]), b"\x20\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x20\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
+
+if __name__ == '__main__':
+    unittest.main()

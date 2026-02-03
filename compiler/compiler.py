@@ -37,8 +37,8 @@ CLOSURE_TAG = 6
 CLOSURE_MASK = 7
 
 UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "car", "cdr"]
-BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "=", "string-ref"]
-TERNARY_OPS = ["string-set!"]
+BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "=", "string-ref", "string-append", "vector-ref", "vector-append"]
+TERNARY_OPS = ["string-set!", "vector-set!"]
 
 class Compiler:
     """
@@ -67,8 +67,11 @@ class Compiler:
             in_let (bool): Indicates whether an expression is in a let statement or not.
         """
         emit = self.code.append
-        
+
         match expr:
+            case "vector":
+                emit(I.VEC)
+                emit(0)
             case bool(_):
                 emit(I.LOAD64)
                 emit(box_bool(expr))
@@ -80,7 +83,7 @@ class Compiler:
                     case "b":
                         emit(I.GET_FROM_ENV)
                         emit(int(s[1:]))
-                    case _:
+                    case "#":
                         emit(I.LOAD64)
                         emit(box_char(expr))
             case [only]:
@@ -91,10 +94,10 @@ class Compiler:
             # Compilation of an expression.
             case [first, *rest]:
                 match first:
-                    case o if o in BINARY_OPS:
+                    case w if w in BINARY_OPS:
                         self.compile(rest[0])
                         self.compile(rest[1])
-                        self.emit_symbol(o)
+                        self.emit_symbol(w)
                     case w if w in UNARY_OPS:
                         self.compile(rest[0])
                         self.emit_symbol(w)
@@ -123,6 +126,10 @@ class Compiler:
                     case "string":
                         emit(I.STR)
                         self.emit_string(rest[0])
+                    case "vector":
+                        emit(I.VEC)
+                        emit(len(rest))
+                        self.compile(rest)
                     case _:
                         self.compile(first)
                         self.compile(rest)
@@ -198,6 +205,14 @@ class Compiler:
                 emit(I.STR_REF)
             case "string-set!":
                 emit(I.STR_SET)
+            case "string-append":
+                emit(I.STR_APP)
+            case "vector-ref":
+                emit(I.VEC_REF)
+            case "vector-set!":
+                emit(I.VEC_SET)
+            case "vector-append":
+                emit(I.VEC_APP)
 
     def emit_string(self, string: str):
         """
@@ -346,9 +361,14 @@ class I(enum.IntEnum):
     STR = enum.auto()
     STR_REF = enum.auto()
     STR_SET = enum.auto()
+    STR_APP = enum.auto()
+    VEC = enum.auto()
+    VEC_REF = enum.auto()
+    VEC_SET = enum.auto()
+    VEC_APP = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function(["string", "hi"])
+    compiler.compile_function(["vector-append", ["vector", ["string", "\"hi\""]], ["vector", ["string", "\"ho\""]]])
     print(compiler.code)
 
