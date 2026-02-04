@@ -101,7 +101,7 @@ private:
 
     // Move past alternate if test was not satisfied.
     void jump_over_else(void);
-    
+
     // Create a new environment for the binding and load the given number of values from the stack into the environment.
     void let(void);
 
@@ -126,7 +126,21 @@ private:
     // Place character at given location on top of stack.
     void str_ref(void);
 
-    // Set character at given location to given value and place string location on top of stack.
+    // Set character at given location to given index and place string location on top of stack.
     void str_set(void);
 
+    // Create new string which is a single string appended to another.
+    void str_append(void);
+
+    // Place vector contents onto heap and address of vector onto stack.
+    void create_vec(void);
+
+    // Place item at given location on top of stack.
+    void vec_ref(void);
+
+    // Set item at given location to given index and place vector location on top of stack.
+    void vec_set(void);
+
+    // Create new vector which is a single vector appended to another.
+    void vec_append(void);
 };

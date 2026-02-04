@@ -24,7 +24,7 @@ class StringParseTests(unittest.TestCase):
             source (str): Scheme source code to be parsed.
 
         Returns:
-            list: ["string", "..."].
+            list: ["string", chars].
         """
         return scheme_parse(source)
 
@@ -32,25 +32,25 @@ class StringParseTests(unittest.TestCase):
         """
         Test (string "hi").
         """
-        self.assertEqual(self._parse("(string \"hi\")"), ["string", "\"hi\""])
+        self.assertEqual(self._parse("(string \"hi\")"), ["string", "#\\h", "#\\i"])
 
     def test_string_regular_whitespace(self):
         """
         Test (string "hi") with whitespace.
         """
-        self.assertEqual(self._parse("    (string    \"hi\")     "), ["string", "\"hi\""])
+        self.assertEqual(self._parse("    (string    \"hi\")     "), ["string", "#\\h", "#\\i"])
 
     def test_string_regular_whitespace_middle(self):
         """
         Test (string "h i") with whitespace in middle of string.
         """
-        self.assertEqual(self._parse("    (string \"h i\")     "), ["string", "\"h i\""])
+        self.assertEqual(self._parse("    (string \"h i\")     "), ["string", "#\\h", "#\\ ", "#\\i"])
 
     def test_string_regular_newline_middle(self):
         """
         Test (string "h\ni") with newline in middle of string.
         """
-        self.assertEqual(self._parse("    (string \"h\ni\")     "), ["string", "\"h\ni\""])
+        self.assertEqual(self._parse("    (string \"h\ni\")     "), ["string", "#\\h", "#\\\n", "#\\i"])
 
     def test_string_no_closing_quote(self):
         """

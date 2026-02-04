@@ -35,6 +35,9 @@
 #define STR_SHIFT 3
 #define STR_MASK 7
 #define STR_TAG 3
+#define VEC_SHIFT 3
+#define VEC_MASK 7
+#define VEC_TAG 2
 
 // enumerations of opcodes.
 enum class OpCode : uint64_t {
@@ -67,7 +70,12 @@ enum class OpCode : uint64_t {
     CDR = 27,
     STR = 28,
     STR_REF = 29,
-    STR_SET = 30
+    STR_SET = 30,
+    STR_APP = 31,
+    VEC = 32,
+    VEC_REF = 33,
+    VEC_SET = 34,
+    VEC_APP = 35
 };
 
 // Build insturction out of 4 bytes.
@@ -241,6 +249,26 @@ uint64_t Interpreter::interpret(void) {
                 // Set character in string.
                 str_set();
                 break;
+            case OpCode::STR_APP:
+                // Concatenate strings.
+                str_append();
+                break;
+            case OpCode::VEC:
+                // Place vector contents onto heap.
+                create_vec();
+                break;
+            case OpCode::VEC_REF:
+                // Get character from vectors.
+                vec_ref();
+                break;
+            case OpCode::VEC_SET:
+                // Set character in vectors.
+                vec_set();
+                break;
+            case OpCode::VEC_APP:
+                // Concatenate vectors.
+                vec_append();
+                break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
                 break;
@@ -274,8 +302,16 @@ void Interpreter::print_val(uint64_t val, std::ostream*& output) {
     }
     else if ((val & STR_MASK) == STR_TAG) {
         *output << "\"";
-        for (i = 1; i <= heap[val >> STR_SHIFT]; i++) *output << static_cast<char>(heap[(val >> STR_SHIFT) + i]);
+        for (i = heap[val >> STR_SHIFT]; i >= 1; i--) *output << static_cast<char>(heap[(val >> STR_SHIFT) + i]);
         *output << "\"";
+    }
+    else if ((val & VEC_MASK) == VEC_TAG) {
+        *output << "#( ";
+        for (i = heap[val >> VEC_SHIFT]; i >= 1; i--) {
+            print_val(heap[(val >> VEC_SHIFT) + i], output);
+            *output << " ";
+        }
+        *output << ")";
     }
     else
         throw std::runtime_error("Invlaid type.\n");
@@ -576,7 +612,7 @@ void Interpreter::create_str(void) {
     heap.push_back(len);
 
     // Place characters onto heap.
-    for (i = 0; i < len; i++) heap.push_back(read_word());
+    for (i = 0; i < len; i++) heap.push_back(pop() >> CHAR_SHIFT);
 
     // Place location of string in heap onto stack.
     push(((heap_ptr << STR_SHIFT) & ~STR_MASK) | STR_TAG);
@@ -587,7 +623,7 @@ void Interpreter::create_str(void) {
 
 // Place character at given location on top of stack.
 void Interpreter::str_ref(void) {
-    uint64_t loc, str_loc, val;
+    uint64_t loc, str_loc, val, len;
 
     // Get location off the top of the stack.
     loc = pop() >> FIXNUM_SHIFT;
@@ -595,18 +631,21 @@ void Interpreter::str_ref(void) {
     // Get string location off the stack.
     str_loc = pop() >> STR_SHIFT;
 
+    // Get length of string.
+    len = heap[str_loc];
+
     // Ensure location is within string.
-    if (loc >= heap[str_loc]) throw std::runtime_error("Invalid index.\n");
+    if (loc >= len) throw std::runtime_error("Invalid index.\n");
 
     // Set character at location and place onto stack.
-    val = heap[str_loc + loc + 1];
+    val = heap[str_loc + len - loc];
 
     push(((val << CHAR_SHIFT) & ~CHAR_MASK) | CHAR_TAG);
 }
 
 // Set character at given location to given value and place string location on top of stack.
 void Interpreter::str_set(void) {
-    uint64_t loc, str_loc, val;
+    uint64_t loc, str_loc, val, len;
 
     // Get character value from stack.
     val = pop() >> CHAR_SHIFT;
@@ -617,13 +656,142 @@ void Interpreter::str_set(void) {
     // Get string's heap index from stack.
     str_loc = pop() >> STR_SHIFT;
 
+    // Get length of string.
+    len = heap[str_loc];
+
     // Ensure location is within string.
-    if (loc >= heap[str_loc]) throw std::runtime_error("Invalid index.\n");
+    if (loc >= len) throw std::runtime_error("Invalid index.\n");
 
     // Set character at location and place onto stack.
-    heap[str_loc + loc + 1] = val;
+    heap[str_loc + len - loc] = val;
 
     // Place string's heap value back onto stack.
     push(((str_loc << STR_SHIFT) & ~STR_MASK) | STR_TAG);
+}
+
+// Create new string which is a single string appended to another.
+void Interpreter::str_append(void) {
+    uint64_t str_loc_1, str_loc_2, i, tot_len, len_1, len_2;
+
+    // Pull strings' heap locations off of stack.
+    str_loc_2 = pop() >> STR_SHIFT;
+    str_loc_1 = pop() >> STR_SHIFT;
+
+    // Get lengths of each string.
+    len_1 = heap[str_loc_1];
+    len_2 = heap[str_loc_2];
+
+    // Find length of new string.
+    tot_len = len_1 + len_2;
+
+    // Place total length onto heap.
+    heap.push_back(tot_len);
+
+    // Place characters into string.
+    for (i = 1; i <= heap[str_loc_2]; i++) heap.push_back(heap[str_loc_2 + i]);
+    for (i = 1; i <= heap[str_loc_1]; i++) heap.push_back(heap[str_loc_1 + i]);
+
+    // Place new string's heap value back onto stack.
+    push(((heap_ptr << STR_SHIFT) & ~STR_MASK) | STR_TAG);
+
+    // Advance heap ppinter.
+    heap_ptr += (tot_len + 1);
+}
+
+// Place vector contents onto heap and address of vector onto stack.
+void Interpreter::create_vec(void) {
+    uint64_t len, i;
+
+    // Get number of items.
+    len = read_word();
+
+    // Place number of items onto heap.
+    heap.push_back(len);
+
+    // Place items onto heap.
+    for (i = 0; i < len; i++) heap.push_back(pop());
+
+    // Place location of vector in heap onto stack.
+    push(((heap_ptr << VEC_SHIFT) & ~VEC_MASK) | VEC_TAG);
+
+    // Advance heap ppinter.
+    heap_ptr += (len + 1);
+}
+
+// Place item at given location on top of stack.
+void Interpreter::vec_ref(void) {
+    uint64_t loc, vec_loc, val, len;
+
+    // Get location off the top of the stack.
+    loc = pop() >> FIXNUM_SHIFT;
+
+    // Get vector location off the stack.
+    vec_loc = pop() >> VEC_SHIFT;
+
+    // Get length of vector.
+    len = heap[vec_loc];
+
+    // Ensure location is within vector.
+    if (loc >= len) throw std::runtime_error("Invalid index.\n");
+
+    // Set item at location and place onto stack.
+    val = heap[vec_loc + len - loc];
+
+    push(val);
+}
+
+// Set item at given location to given index and place vector location on top of stack.
+void Interpreter::vec_set(void) {
+    uint64_t loc, vec_loc, val, len;
+
+    // Get item from stack.
+    val = pop();
+
+    // Get vector index from stack.
+    loc = pop() >> FIXNUM_SHIFT;
+
+    // Get vector's heap index from stack.
+    vec_loc = pop() >> VEC_SHIFT;
+
+    // Get length of vector.
+    len = heap[vec_loc];
+
+    // Ensure location is within vector.
+    if (loc >= len) throw std::runtime_error("Invalid index.\n");
+
+    // Set character at location and place onto stack.
+    heap[vec_loc + len - loc] = val;
+
+    // Place vector's heap value back onto stack.
+    push(((vec_loc << VEC_SHIFT) & ~VEC_MASK) | VEC_TAG);
+}
+
+// Create new vector which is a single vector appended to another.
+void Interpreter::vec_append(void) {
+    uint64_t vec_loc_1, vec_loc_2, i, tot_len, len_1, len_2;
+
+    // Pull vectors' heap locations off of stack.
+    vec_loc_2 = pop() >> VEC_SHIFT;
+    vec_loc_1 = pop() >> VEC_SHIFT;
+
+    // Get lengths of each vector.
+    len_1 = heap[vec_loc_1];
+    len_2 = heap[vec_loc_2];
+
+    // Find length of new vector.
+    tot_len = len_1 + len_2;
+
+    // Place total length onto heap.
+    heap.push_back(tot_len);
+
+    // Place characters into vector.
+    for (i = 1; i <= heap[vec_loc_2]; i++) heap.push_back(heap[vec_loc_2 + i]);
+    for (i = 1; i <= heap[vec_loc_1]; i++) heap.push_back(heap[vec_loc_1 + i]);
+
+    // Place new vector's heap value back onto stack.
+    push(((heap_ptr << VEC_SHIFT) & ~VEC_MASK) | VEC_TAG);
+
+    // Advance heap ppinter.
+    heap_ptr += (tot_len + 1);
 }
 

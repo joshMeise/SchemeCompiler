@@ -32,7 +32,7 @@ class StringAppendParseTests(unittest.TestCase):
         """
         Test (string-append (string "hi") (string "ho")).
         """
-        self.assertEqual(self._parse("(string-append (string \"hi\") (string \"ho\"))"), ["string-append", ["string", "\"hi\""], ["string", "\"ho\""]])
+        self.assertEqual(self._parse("(string-append (string \"hi\") (string \"ho\"))"), ["string-append", ["string", "#\\h", "#\\i"], ["string", "#\\h", "#\\o"]])
 
 if __name__ == '__main__':
     unittest.main()

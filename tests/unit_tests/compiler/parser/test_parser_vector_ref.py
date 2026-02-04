@@ -32,7 +32,7 @@ class VectorRefParseTests(unittest.TestCase):
         """
         Test (vector-ref (vector (string "hi")) 0).
         """
-        self.assertEqual(self._parse("(vector-ref (vector (string \"hi\")) 0)"), ["vector-ref", ["vector", ["string", "\"hi\""]], 0])
+        self.assertEqual(self._parse("(vector-ref (vector (string \"hi\")) 0)"), ["vector-ref", ["vector", ["string", "#\\h", "#\\i"]], 0])
 
     def test_vector_ref_regular_2(self):
         """

@@ -123,13 +123,10 @@ class Compiler:
                         self.compile(rest[1])
                         self.compile(rest[0])
                         emit(I.CONS)
-                    case "string":
-                        emit(I.STR)
-                        self.emit_string(rest[0])
-                    case "vector":
-                        emit(I.VEC)
-                        emit(len(rest))
+                    case w if w in ["string", "vector"]:
                         self.compile(rest)
+                        self.emit_symbol(w)
+                        emit(len(rest))
                     case _:
                         self.compile(first)
                         self.compile(rest)
@@ -201,33 +198,22 @@ class Compiler:
                 emit(I.CAR)
             case "cdr":
                 emit(I.CDR)
+            case "string":
+                emit(I.STR)
             case "string-ref":
                 emit(I.STR_REF)
             case "string-set!":
                 emit(I.STR_SET)
             case "string-append":
                 emit(I.STR_APP)
+            case "vector":
+                emit(I.VEC)
             case "vector-ref":
                 emit(I.VEC_REF)
             case "vector-set!":
                 emit(I.VEC_SET)
             case "vector-append":
                 emit(I.VEC_APP)
-
-    def emit_string(self, string: str):
-        """
-        Converts string into bytes.
-
-        Args:
-            string (str): String to be compiled (including openign and closing quotes).
-        """
-        emit = self.code.append
-
-        # Emit string length excluding quotes.
-        emit(len(string) - 2)
-
-        for char in string[1:-1]:
-            emit(ord(char))
 
 def get_len(expr) -> int:
     """
@@ -369,6 +355,6 @@ class I(enum.IntEnum):
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function(["vector-append", ["vector", ["string", "\"hi\""]], ["vector", ["string", "\"ho\""]]])
+    compiler.compile_function(["string", "#\\h", "#\\i"])
     print(compiler.code)
 

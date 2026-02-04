@@ -32,13 +32,13 @@ class StringSetParseTests(unittest.TestCase):
         """
         Test (string-set! (string "hi") 0 a).
         """
-        self.assertEqual(self._parse("(string-set! (string \"hi\") 0 #\\a)"), ["string-set!", ["string", "\"hi\""], 0, "#\\a"])
+        self.assertEqual(self._parse("(string-set! (string \"hi\") 0 #\\a)"), ["string-set!", ["string", "#\\h", "#\\i"], 0, "#\\a"])
 
     def test_string_ref_regular_2(self):
         """
         Test (string-set! (string "hio") 1, b).
         """
-        self.assertEqual(self._parse("(string-set! (string \"hio\") 1 #\\b)"), ["string-set!", ["string", "\"hio\""], 1, "#\\b"])
+        self.assertEqual(self._parse("(string-set! (string \"hio\") 1 #\\b)"), ["string-set!", ["string", "#\\h", "#\\i", "#\\o"], 1, "#\\b"])
 
 if __name__ == '__main__':
     unittest.main()

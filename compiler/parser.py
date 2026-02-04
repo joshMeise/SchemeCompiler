@@ -479,7 +479,8 @@ class Parser:
         # Get string lietral from source.
         self.get_string()
         
-        ast.append(self.text)
+        for char in self.text[1:-1]:
+            ast.append(f"#\\{char}")
 
         # Consume string.
         self.match()
@@ -602,4 +603,4 @@ def scheme_parse(source: str) -> int | bool | str | list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    scheme_parse("(vector 1)")
+    print(scheme_parse("(string \"hi\")"))

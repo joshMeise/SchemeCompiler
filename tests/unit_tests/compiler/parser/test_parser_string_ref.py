@@ -32,13 +32,13 @@ class StringRefParseTests(unittest.TestCase):
         """
         Test (string-ref (string "hi") 0).
         """
-        self.assertEqual(self._parse("(string-ref (string \"hi\") 0)"), ["string-ref", ["string", "\"hi\""], 0])
+        self.assertEqual(self._parse("(string-ref (string \"hi\") 0)"), ["string-ref", ["string", "#\\h", "#\\i"], 0])
 
     def test_string_ref_regular_2(self):
         """
         Test (string-ref (string "hi") 1).
         """
-        self.assertEqual(self._parse("(string-ref (string \"hi\") 1)"), ["string-ref", ["string", "\"hi\""], 1])
+        self.assertEqual(self._parse("(string-ref (string \"hi\") 1)"), ["string-ref", ["string", "#\\h", "#\\i"], 1])
 
 if __name__ == '__main__':
     unittest.main()
