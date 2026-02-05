@@ -11,9 +11,8 @@ import sys
 import os
 import subprocess
 
-INTERPRETER_UTILS_DIR = "./interpreter/utils/"
-INTERPRETER_EXECS_DIR = "./interpreter/execs/"
-INTERPRET = "./interpreter/execs/interpret"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INTERPRET = os.path.join(BASE_DIR, "..", "..", "..", "interpreter", "execs", "interpret")
 
 class LetInterpreterTests(unittest.TestCase):
     """
@@ -71,10 +70,5 @@ class LetInterpreterTests(unittest.TestCase):
         """
         self.assertEqual(self._interpret(b"\x01\x00\x00\x00\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x0C\x00\x00\x00\x00\x00\x00\x00\x0C\x00\x00\x00\x00\x00\x00\x00\x16\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x18\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "7\n")
 
-
-
-
 if __name__ == '__main__':
     unittest.main()
-
-    # exps let #bindings (load bindings into env) 

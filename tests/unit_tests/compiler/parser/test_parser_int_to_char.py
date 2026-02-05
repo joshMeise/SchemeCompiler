@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class IntToCharParseTests(unittest.TestCase):
     """
@@ -26,7 +26,7 @@ class IntToCharParseTests(unittest.TestCase):
         Returns:
             list: ["integer->char", integer].
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_int_to_char_zero(self):
         """
@@ -44,22 +44,8 @@ class IntToCharParseTests(unittest.TestCase):
         """
         Test (integer->char 0) with trailing character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(integer->char 0)a")
-
-    def test_int_to_char_char(self):
-        """
-        Tests (integer->char #\a).
-        """
-        with self.assertRaises(TypeError):
-            self._parse("(integer->char #\\a)")
-
-    def test_int_to_char_bool(self):
-        """
-        Tests (integer->char #t).
-        """
-        with self.assertRaises(TypeError):
-            self._parse("(integer->char #t)")
 
 if __name__ == '__main__':
     unittest.main()

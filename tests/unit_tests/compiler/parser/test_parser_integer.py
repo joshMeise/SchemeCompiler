@@ -7,16 +7,11 @@
 # - Ensures that whitespace is skipped.
 # - Ensures that invlaid format integers are not accepted.
 #
-# TODO:
-# - Maybe add multiple integers?
-# - Add in tests of integers out of bounds (once bounds are determined).
-# - Update test for invalid character at beginning once implemented.
-#
 
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class IntegerParseTests(unittest.TestCase):
     """
@@ -34,7 +29,7 @@ class IntegerParseTests(unittest.TestCase):
         Returns:
             list: Abstract syntax tree produced by parser.
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_regular(self):
         """
@@ -68,37 +63,37 @@ class IntegerParseTests(unittest.TestCase):
 
     def test_eof_error(self):
         """
-        Tests to make sure that EOFError is raised when provided with an empty string.
+        Tests to make sure that RuntimeError is raised when provided with an empty string.
         """
-        with self.assertRaises(EOFError):
+        with self.assertRaises(RuntimeError):
             self._parse("")
 
     def test_invalid_int_0(self):
         """
         Test integer with invalid character in middle of integer.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("4i2")
 
     def test_invalid_int_1(self):
         """
         Test integer with invalid character in middle of integer.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("42i2")
 
     def test_invalid_int_2(self):
         """
         Test integer with invalid character at end of integer.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("42i")
 
     def test_invalid_int_3(self):
         """
         Test integer with invalid character at beginning of integer.
         """
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(RuntimeError):
             self._parse("i42")
 
 if __name__ == '__main__':

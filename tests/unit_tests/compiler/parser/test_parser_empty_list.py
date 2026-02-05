@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class EmptyListParseTests(unittest.TestCase):
     """
@@ -26,7 +26,7 @@ class EmptyListParseTests(unittest.TestCase):
         Returns:
             list: Empty list.
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_empty_list(self):
         """
@@ -34,11 +34,17 @@ class EmptyListParseTests(unittest.TestCase):
         """
         self.assertEqual(self._parse("()"), [])
 
+    def test_empty_list_space(self):
+        """
+        Test regular empty list with spaces.
+        """
+        self.assertEqual(self._parse("(     )"), [])
+
     def test_invalid_empty_list(self):
         """
         Tests empty list with character following.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("()a")
 
 if __name__ == '__main__':

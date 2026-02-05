@@ -23,9 +23,22 @@ CHAR_MASK = 255
 EMPTY_LIST_SHIFT = 8
 EMPTY_LIST_TAG = 47
 EMPTY_LIST_MASK = 255
+VECTOR_SHIFT = 3
+VECTOR_TAG = 2
+VECTOR_MASK = 7
+STRING_SHIFT = 3
+STRING_TAG = 3
+STRING_MASK = 7
+SYMBOL_SHIFT = 3
+SYMBOL_TAG = 5
+SYMBOL_MASK = 7
+CLOSURE_SHIFT = 3
+CLOSURE_TAG = 6
+CLOSURE_MASK = 7
 
-UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?"]
-BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "="]
+UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "car", "cdr"]
+BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "=", "string-ref", "string-append", "vector-ref", "vector-append"]
+TERNARY_OPS = ["string-set!", "vector-set!"]
 
 class Compiler:
     """
@@ -54,8 +67,12 @@ class Compiler:
             in_let (bool): Indicates whether an expression is in a let statement or not.
         """
         emit = self.code.append
-        
+
         match expr:
+            # Handle the case of the empty vector constructor.
+            case "vector":
+                emit(I.VEC)
+                emit(0)
             case bool(_):
                 emit(I.LOAD64)
                 emit(box_bool(expr))
@@ -67,7 +84,7 @@ class Compiler:
                     case "b":
                         emit(I.GET_FROM_ENV)
                         emit(int(s[1:]))
-                    case _:
+                    case "#":
                         emit(I.LOAD64)
                         emit(box_char(expr))
             case [only]:
@@ -78,13 +95,22 @@ class Compiler:
             # Compilation of an expression.
             case [first, *rest]:
                 match first:
-                    case o if o in BINARY_OPS:
+                    case w if w in BINARY_OPS:
                         self.compile(rest[0])
                         self.compile(rest[1])
-                        self.emit_symbol(o)
+                        self.emit_symbol(w)
                     case w if w in UNARY_OPS:
                         self.compile(rest[0])
                         self.emit_symbol(w)
+                    case w if w in TERNARY_OPS:
+                        self.compile(rest[0])
+                        self.compile(rest[1])
+                        self.compile(rest[2])
+                        self.emit_symbol(w)
+                    case w if w in ["string", "vector", "begin"]:
+                        self.compile(rest)
+                        self.emit_symbol(w)
+                        emit(len(rest))
                     case "if":
                         self.compile(rest[0])
                         emit(I.POP_JUMP_IF_FALSE)
@@ -94,10 +120,15 @@ class Compiler:
                         emit(get_len(rest[2]))
                         self.compile(rest[2])
                     case "let":
+                        self.compile(rest[0])
                         emit(I.LET)
-                        emit(rest[0])
-                        self.compile(rest[1:])
+                        emit(len(rest[0]))
+                        self.compile(rest[1])
                         emit(I.END_LET)
+                    case "cons":
+                        self.compile(rest[1])
+                        self.compile(rest[0])
+                        emit(I.CONS)
                     case _:
                         self.compile(first)
                         self.compile(rest)
@@ -165,6 +196,28 @@ class Compiler:
                 emit(I.GEQ)
             case "=":
                 emit(I.EQ)
+            case "car":
+                emit(I.CAR)
+            case "cdr":
+                emit(I.CDR)
+            case "string":
+                emit(I.STR)
+            case "string-ref":
+                emit(I.STR_REF)
+            case "string-set!":
+                emit(I.STR_SET)
+            case "string-append":
+                emit(I.STR_APP)
+            case "vector":
+                emit(I.VEC)
+            case "vector-ref":
+                emit(I.VEC_REF)
+            case "vector-set!":
+                emit(I.VEC_SET)
+            case "vector-append":
+                emit(I.VEC_APP)
+            case "begin":
+                emit(I.BEG)
 
 def get_len(expr) -> int:
     """
@@ -292,9 +345,21 @@ class I(enum.IntEnum):
     LET = enum.auto()
     GET_FROM_ENV = enum.auto()
     END_LET = enum.auto()
+    CONS = enum.auto()
+    CAR = enum.auto()
+    CDR = enum.auto()
+    STR = enum.auto()
+    STR_REF = enum.auto()
+    STR_SET = enum.auto()
+    STR_APP = enum.auto()
+    VEC = enum.auto()
+    VEC_REF = enum.auto()
+    VEC_SET = enum.auto()
+    VEC_APP = enum.auto()
+    BEG = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function([5, 3, ["let", 2, [2]]])
+    compiler.compile_function(["let", [4], [["let", [5], [["+", "b1", "b0"]]]]])
     print(compiler.code)
 

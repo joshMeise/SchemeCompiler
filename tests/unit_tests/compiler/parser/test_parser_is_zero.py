@@ -8,7 +8,7 @@
 import unittest
 import sys
 import os
-from compiler.parser import Parser
+from compiler.parser import *
 
 class IsZeroParseTests(unittest.TestCase):
     """
@@ -26,7 +26,7 @@ class IsZeroParseTests(unittest.TestCase):
         Returns:
             list: ["zero?", integer].
         """
-        return Parser(source).parse()
+        return scheme_parse(source)
 
     def test_is_zero_zero(self):
         """
@@ -44,22 +44,8 @@ class IsZeroParseTests(unittest.TestCase):
         """
         Test (zero? 0) with trailing character.
         """
-        with self.assertRaises(TypeError):
+        with self.assertRaises(RuntimeError):
             self._parse("(zero? 0)a")
-
-    def test_is_zero_char(self):
-        """
-        Tests (zero? #\a).
-        """
-        with self.assertRaises(TypeError):
-            self._parse("(zero? #\\a)")
-
-    def test_is_zero_bool(self):
-        """
-        Tests (zero? #t).
-        """
-        with self.assertRaises(TypeError):
-            self._parse("(zero? #t)")
 
 if __name__ == '__main__':
     unittest.main()

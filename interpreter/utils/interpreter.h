@@ -11,6 +11,7 @@
 #include <stack>
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 class Interpreter {
 public:
@@ -23,12 +24,17 @@ public:
     // Interpret program.
     uint64_t interpret(void);
 
+    // Print out value.
+    void print_val(uint64_t val, std::ostream*& output);
+
 private:
     // Member variables.
     std::vector<uint64_t> code;
     std::vector<uint64_t> stack;
     int pc;
-    std::vector<std::vector<uint64_t>> env;
+    std::vector<uint64_t> env;
+    std::vector<uint64_t> heap;
+    uint64_t heap_ptr;
 
     // Get instruction.
     uint64_t read_word(void);
@@ -95,7 +101,7 @@ private:
 
     // Move past alternate if test was not satisfied.
     void jump_over_else(void);
-    
+
     // Create a new environment for the binding and load the given number of values from the stack into the environment.
     void let(void);
 
@@ -104,4 +110,40 @@ private:
 
     // Clean up binding's environment.
     void end_let(void);
+
+    // Create cons cell.
+    void create_cons(void);
+
+    // Place first value in corresponding cons cell onto stack.
+    void car(void);
+
+    // Place second value in corresponding cons cell onto stack.
+    void cdr(void);
+
+    // Place string contents onto heap and address of string onto stack.
+    void create_str(void);
+
+    // Place character at given location on top of stack.
+    void str_ref(void);
+
+    // Set character at given location to given index and place string location on top of stack.
+    void str_set(void);
+
+    // Create new string which is a single string appended to another.
+    void str_append(void);
+
+    // Place vector contents onto heap and address of vector onto stack.
+    void create_vec(void);
+
+    // Place item at given location on top of stack.
+    void vec_ref(void);
+
+    // Set item at given location to given index and place vector location on top of stack.
+    void vec_set(void);
+
+    // Create new vector which is a single vector appended to another.
+    void vec_append(void);
+
+    // Clean up stack after evaluating expressions in begin.
+    void begin(void);
 };

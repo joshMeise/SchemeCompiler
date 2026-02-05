@@ -10,7 +10,6 @@
 #pragma once
 #include <iostream>
 #include <fstream>
-#include <cstdint>
 
 /*
  * Parses program arguments and sets input and output.
@@ -30,13 +29,3 @@
  */
 int parse_args(int argc, char** argv, std::ifstream& ifile, std::istream*& input, std::ofstream& ofile, std::ostream*& output);
 
-/*
- * Prints out value returned by interpreter.
- * Checks type of value and prints based on type.
- *
- * Args:
- * - val (uint64_t): tagged pointer returned by interpreter
- * - output (std::ostream*&): reference to pointer to output stream to which to print
- *
- */
-void print_val(uint64_t val, std::ostream*& output);

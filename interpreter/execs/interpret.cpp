@@ -35,7 +35,8 @@ int main(int argc, char** argv) {
     val = interpreter.interpret();
 
     // Print out return value.
-    print_val(val, output);
+    interpreter.print_val(val, output);
+    *output << std::endl;
 
     // Clean up.
     if (ifile.is_open()) ifile.close();

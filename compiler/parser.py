@@ -1,17 +1,18 @@
 # parser.py - 
 #
 # Josh Meise
-# 01-08-2026
+# 01-30-2026
 # Description: 
 #
 # Citations:
-# - Google's AI tool for the suggestion of the use of regex and then Python's regex documentation for the implementation.
+# - GeminiAI for re.DOTALL to get string to include newline.
+#
 
-from typing import Union
+import enum
 import re
+from collections import OrderedDict
 
-WSP = [' ', '\n', '\t', '\r']
-ILLEGAL_CHARS = ['`']
+WSP = ['\n', '\r', '\t', ' ']
 
 class Parser:
     """
@@ -23,7 +24,8 @@ class Parser:
     Attributes:
         source (str): Scheme source program to be parsed.
         pos (int): Current position of parser in Scheme source program.
-        length (int): Length of Scheme program.
+        length (int): Number of characters in Scheme program.
+        text (str): Text corresponding to previously matched token.
     """
 
     def __init__(self, source: str):
@@ -37,658 +39,574 @@ class Parser:
         self.pos = 0
         self.length = len(source)
 
-    def parse(self):
+    def get_token(self) -> Token:
         """
-        Parses input strings of various objects.
+        Matches a token at the current position in the source code.
+        Sets text to be matched value.
 
         Returns:
-            Atomic element or abstract syntax tree in the form of a Python list.
+            Token: Matching token.
 
         Raises:
-            EOFError: Unexpectedly reaches end of file.
-            NotImplementedError: Non-integer value being parsed.
+            RuntimeError: Text does not match an patterns.
         """
-        self.skip_whitespace()
-        match self.peek():
-            case '':
-                raise EOFError("unexpected end of input.")
-            case c if c.isdigit():
-                val = self.parse_number()
-            case '#':
-                val = self.parse_boolean_or_char()
-            case '(':
-                val = self.parse_expression()
-            case c:
-                raise NotImplementedError(f"found {c}.")
-
-        # Ensure that whitespace follows.
+        # Consume whitespace.
         self.skip_whitespace()
 
-        # If end of input expression is of invalid format.
-        if self.peek() != '':
-            raise TypeError("Invalid type.")
+        match self.source[self.pos:]:
+            case _ if self.pos == self.length:
+                self.text = "EOF"
+                return Token.EOI
+            case _ if t := re.match(r"\(", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.OP
+            case _ if t := re.match(r"\)", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CP
+            case _ if t := re.match(r"[0-9]+", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.INT
+            case _ if t := re.match(r"#\\[^`]", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CHAR
+            case _ if t := re.match(r"#[tfTF]", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.BOOL
+            case _ if t := re.match(r"add1", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.ADD1
+            case _ if t := re.match(r"sub1", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.SUB1
+            case _ if t := re.match(r"integer\->char", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.INT_TO_CHAR
+            case _ if t := re.match(r"char\->integer", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CHAR_TO_INT
+            case _ if t := re.match(r"null\?", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.IS_NULL
+            case _ if t := re.match(r"zero\?", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.IS_ZERO
+            case _ if t := re.match(r"not", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.NOT
+            case _ if t := re.match(r"integer\?", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.IS_INT
+            case _ if t := re.match(r"boolean\?", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.IS_BOOL
+            case _ if t := re.match(r"\+", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.PLUS
+            case _ if t := re.match(r"\-", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.MINUS
+            case _ if t := re.match(r"\*", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.TIMES
+            case _ if t := re.match(r"<\=", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.LEQ
+            case _ if t := re.match(r">\=", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.GEQ
+            case _ if t := re.match(r"<", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.LT
+            case _ if t := re.match(r">", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.GT
+            case _ if t := re.match(r"<=", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.LEQ
+            case _ if t := re.match(r">=", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.GEQ
+            case _ if t := re.match(r"=", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.EQ
+            case _ if t := re.match(r"let", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.LET
+            case _ if t := re.match(r"if", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.IF
+            case _ if t := re.match(r"cons", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CONS
+            case _ if t := re.match(r"car", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CAR
+            case _ if t := re.match(r"cdr", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.CDR
+            case _ if t := re.match(r"string\-ref", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR_REF
+            case _ if t := re.match(r"string\-set\!", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR_SET
+            case _ if t := re.match(r"string\-append", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR_APP
+            case _ if t := re.match(r"string", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR
+            case _ if t := re.match(r"vector\-ref", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC_REF
+            case _ if t := re.match(r"vector\-set\!", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC_SET
+            case _ if t := re.match(r"vector\-append", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC_APP
+            case _ if t := re.match(r"vector", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC
+            case _ if t := re.match(r"begin", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.BEG
+            case _ if not re.match(r"[^(` \n\t\r1-9#\(\))][^(` \n\t\r\(\))]*", self.source[self.pos:]):
+                raise RuntimeError("Unrecognized token.")
+            case _:
+                self.get_identifier()
+                return Token.ID
 
-        return val
+    def match(self):
+        """
+        Consumes text in input stream.
+        """
+        self.pos += len(self.text)
 
-    def parse_expression(self) -> list:
+    def skip_whitespace(self):
+        """
+        Removes leading whitespace in input stream.
+        Allows parser to ignore whitespace.
+        """
+        while self.pos < self.length and self.source[self.pos] in WSP:
+            self.pos += 1
+
+    def get_identifier(self):
+        """
+        Matches a variable name in the input string.
+        Sets text attribute to variable name.
+
+        Raises:
+            RuntimeError: Illegal identifier or end of input.
+        """
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        match self.source[self.pos:]:
+            case _ if self.pos == self.length:
+                raise RuntimeError("Unexpected end of input.")
+            case _ if t := re.match(r"[^(` \n\t\r1-9#)\(\)][^(` \n\t\r\(\))]*", self.source[self.pos:]):
+                self.text = t.group(0)
+            case _:
+                raise RuntimeError("Illegal identifier.")
+
+    def get_string(self):
+        """
+        Matches a string literal in the input string.
+        Sets text attribute to variable name.
+
+        Raises:
+            RuntimeError: String not found or end of input.
+        """
+        # Consume whitespace.
+        self.skip_whitespace()
+
+        match self.source[self.pos:]:
+            case _ if self.pos == self.length:
+                raise RuntimeError("Unexpected end of input.")
+            case _ if t := re.match(r"\"[^\"]*\"?", self.source[self.pos:], re.DOTALL):
+                self.text = t.group(0)
+            case _:
+                raise RuntimeError("String not found.")
+
+    def parse(self) -> int | str | bool | list:
         """
         Parses expression from string.
 
         Returns:
-            list: AST containing expressiont aht have been parsed.
+            int | str | bool | list : AST containing expressions that have been parsed.
 
         Raises:
-            TypeError: Invalid expression.
-            NotImplementedError: Parse function for type not yet implemented.
+            RuntimeError: Unexpecteed token received.
         """
-        # Consume opening parens.
-        self.pos += 1
-
-        # Skip whitespace.
-        self.skip_whitespace()
-
-        ast = []
-
-        match self.peek():
-            case ')':
-                return self.parse_empty_list()
-            # Contains another expression.
-            case '(':
-                ast.append(self.parse_expression())
+        match self.get_token():
+            case Token.INT:
+                ast = self.parse_int()
+            case Token.CHAR:
+                ast = self.parse_char()
+            case Token.BOOL:
+                ast = self.parse_bool()
+            case Token.OP:
+                ast = self.parse_expr()
             case _:
-                match self.peek_word():
-                    case "add1":
-                        return self.parse_unary_int_arg("add1")
-                    case "sub1":
-                        return self.parse_unary_int_arg("sub1")
-                    case "integer->char":
-                        return self.parse_unary_int_arg("integer->char")
-                    case "char->integer":
-                        return self.parse_unary_char_arg("char->integer")
-                    case "null?":
-                        return self.parse_unary_any_arg("null?")
-                    case "zero?":
-                        return self.parse_unary_int_arg("zero?")
-                    case "not":
-                        return self.parse_unary_any_arg("not")
-                    case "integer?":
-                        return self.parse_unary_any_arg("integer?")
-                    case "boolean?":
-                        return self.parse_unary_any_arg("boolean?")
-                    case "+":
-                        return self.parse_binary_int_args("+")
-                    case "*":
-                        return self.parse_binary_int_args("*")
-                    case "-":
-                        return self.parse_binary_int_args("-")
-                    case "<":
-                        return self.parse_binary_int_args("<")
-                    case ">":
-                        return self.parse_binary_int_args(">")
-                    case "<=":
-                        return self.parse_binary_int_args("<=")
-                    case ">=":
-                        return self.parse_binary_int_args(">=")
-                    case "=":
-                        return self.parse_binary_int_args("=")
-                    case "let":
-                        return self.parse_let()
-                    case "if":
-                        return self.parse_if()
-                    case w:
-                        raise NotImplementedError(f"Expression {w} not implemented.")
+                raise RuntimeError(f"Unexpected token {self.text}.")
+
+        # Ensure end of input has been reached.
+        if self.get_token() != Token.EOI:
+            raise RuntimeError(f"Unexpected token {self.text}")
 
         return ast
 
-    def peek(self) -> str:
+    def parse_int(self) -> int:
         """
-        Get character at the front of input string.
+        Parses integer from string.
 
         Returns:
-            str: Character at front of input string.
+            int: Integer value that has been parsed.
         """
-        # Return no character if end of input has been reached.
-        if self.pos == self.length:
-            return ''
-
-        # Return front character in input string.
-        c = self.source[self.pos]
-        return c
-
-    def peek_word(self) -> str:
-        """
-        Get word at the front of input string.
-
-        Returns:
-            str: Word at front of input string.
-        """
-        # Return no word if end of input has been reached.
-        if self.pos == self.length:
-            return ''
-
-        # Return front word in input string.
-        w = self.source[self.pos::].split(' ')[0]
-        return w
-    
-    def skip_whitespace(self):
-        """
-        Removes leading whitespace in source code.
-        """
-        while self.peek() in WSP:
-            self.pos += 1
-
-    def parse_empty_list(self) -> list:
-        """
-        Parses empty list.
-
-        Returns:
-            list: Empty list.
-
-        Raises:
-            TypeError: Invalid empty list.
-        """
-        # Consume closing parens.
-        self.pos += 1
-        
-        return []
-
-    def parse_number(self) -> int:
-        """
-        Parses positive integer values from digit string.
-
-        Returns:
-            int: Integer value of string that has been parsed.
-
-        Raises:
-            TypeError: Non-digit found in integer string.
-        """
-        # Build ingeter from digit string.
-        num = 0
-        while self.peek().isdigit():
-            num *= 10
-            num += int(self.source[self.pos])
-            self.pos += 1
-
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        return num
-
-    def parse_boolean_or_char(self) -> Union[str, bool]:
-        """
-        Parses boolean or character value from string.
-
-        Returns:
-            bool: Boolean value of string that has been parsed.
-            str: Character value that was parsed.
-
-        Raises:
-            TypeError: Non-boolean or non-character found in string starting with #.
-        """
-        # Skip over '#'.
-        self.pos += 1
-        
-        if self.peek() == 't' or self.peek() == 'T' or self.peek() == 'f' or self.peek() == 'F':
-            return self.parse_boolean()
-        elif self.peek() == '\\':
-            return self.parse_char()
-        else:
-            raise TypeError("Invalid boolean or character type.")
-
-    def parse_boolean(self) -> bool:
-        """
-        Parses boolean value from string.
-
-        Returns:
-            bool: Boolean value that has been parsed.
-
-        Raises:
-            TypeError: Non-boolean value found in string.
-        """
-        if self.peek() == 't' or self.peek() == 'T':
-            ret_val = True
-        elif self.peek() == 'f' or self.peek() == 'F':
-            ret_val = False
-        else:
-            raise TypeError("Invalid boolean type.")
-        
-        self.pos += 1
-
-        return ret_val
-
-    def parse_char(self) -> str:
-        """
-        Parses character value from string.
-
-        Returns:
-            str: Character value that has been parsed.
-
-        Raises:
-            TypeError: Non-character value or illegal character value found in string.
-        """
-        # Skip over backslash.
-        self.pos += 1
-
-        if self.peek() in ILLEGAL_CHARS:
-            raise TypeError("Illegal character.")
-    
-        ret_val = self.peek()
-        
-        self.pos += 1
-
-        return "#\\" + ret_val
-
-    def parse_binding(self) -> str:
-        """
-        Parses binding value from string.
-
-        Returns:
-            str: Binding value that has been parsed.
-
-        Raises:
-            TypeError: Non-binding value or illegal binding value found in string.
-        """
-        # Skip over 'b'.
-        self.pos += 1
-
-        # Build ingeter from digit string.
-        num = 0
-        while self.peek().isdigit():
-            num *= 10
-            num += int(self.source[self.pos])
-            self.pos += 1
-        
-        # Ensure that a space or closing parens follows.
-        if self.peek() != ' ' and self.peek() != ')':
-            raise TypeError("Invalid binding name.")
-
-        return "b" + str(num)
-
-    def parse_unary_int_arg(self, exp_name: str) -> list:
-        """
-        Parses unary exression (exp_name e) with integer argument from string.
-
-        Returns:
-            list: [exp_name, e].
-
-        Raises:
-            TypeError: Invalid expression.
-        """
-        exp = []
-
-        # Skip over exp_name.
-        self.pos += len(exp_name)
-
-        exp.append(exp_name)
-
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # Ensure that number follows.
-        match self.peek():
-            # Parse number and add to expression.
-            case c if c.isdigit():
-                num = self.parse_number()
-                exp.append(num)
-            # Append nested expression to list of expression to list of expressions.
-            case '(':
-                exp.append(self.parse_expression())
-            case 'b':
-                exp.append(self.parse_binding())
-            case _:
-                raise TypeError(f"Invalid argument to {exp_name} expression.")
-        
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # If not closing parens, the expresion is invalid.
-        if self.peek() != ')':
-            raise TypeError(f"Invalid argument to {exp_name} expression.")
-
-        # Skip closing parens.
-        if self.peek() != '' and self.peek() == ')':
-            self.pos += 1
-        else:
-            raise TypeError(f"{exp_name} expression missing closing parens.")
-
-        return exp
-
-    def parse_unary_char_arg(self, exp_name: str) -> list:
-        """
-        Parses unary exression (exp_name e) with character argument from string.
-
-        Returns:
-            list: [exp_name, e].
-
-        Raises:
-            TypeError: Invalid expression.
-        """
-        exp = []
-
-        # Skip over exp_name.
-        self.pos += len(exp_name)
-
-        exp.append(exp_name)
-
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # Ensure that number follows.
-        match self.peek():
-            # Parse character or boolean and add to expression.
-            case '#':
-                # Skip over '#'.
-                self.pos += 1
-                arg = self.parse_char()
-                exp.append(arg)
-            # Append nested expression to list of expression to list of expressions.
-            case '(':
-                exp.append(self.parse_expression())
-            case 'b':
-                exp.append(self.parse_binding())
-            case _:
-                raise TypeError(f"Invalid argument to {exp_name} expression.")
-        
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # If not closing parens, the expresion is invalid.
-        if self.peek() != ')':
-            raise TypeError(f"Invalid argument to {exp_name} expression.")
-
-        # Skip closing parens.
-        if self.peek() != '' and self.peek() == ')':
-            self.pos += 1
-        else:
-            raise TypeError(f"{exp_name} expression missing closing parens.")
-
-        return exp
-
-    def parse_unary_any_arg(self, exp_name: str) -> list:
-        """
-        Parses unary exression (exp_name e) with any type of argument from string.
-
-        Returns:
-            list: [exp_name, e].
-
-        Raises:
-            TypeError: Invalid expression.
-        """
-        exp = []
-
-        # Skip over exp_name.
-        self.pos += len(exp_name)
-
-        exp.append(exp_name)
-
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # Ensure that number follows.
-        match self.peek():
-            # Parse number and add to expression.
-            case c if c.isdigit():
-                num = self.parse_number()
-                exp.append(num)
-            # Parse character or boolean and add to expression.
-            case '#':
-                arg = self.parse_boolean_or_char()
-                exp.append(arg)
-            # Append nested expression to list of expression to list of expressions.
-            case '(':
-                exp.append(self.parse_expression())
-            case 'b':
-                exp.append(self.parse_binding())
-            case _:
-                raise TypeError(f"Invalid argument to {exp_name} expression.")
-        
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # If not closing parens, the expresion is invalid.
-        if self.peek() != ')':
-            raise TypeError(f"Invalid argument to {exp_name} expression.")
-
-        # Skip closing parens.
-        if self.peek() != '' and self.peek() == ')':
-            self.pos += 1
-        else:
-            raise TypeError(f"{exp_name} expression missing closing parens.")
-
-        return exp
-
-    def parse_binary_int_args(self, exp_name: str) -> list:
-        """
-        Parses binary expression (exp_name e1 e2 ...) with integer arguments from string.
-
-        Returns:
-            list: [exp_name, e1, e2, ...].
-
-        Raises:
-            TypeError: Invalid expression.
-        """
-        exp = []
-
-        # Skip over exp_name.
-        self.pos += len(exp_name)
-
-        exp.append(exp_name)
-
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # Parse two numbers that follow exp_name.
-        match self.peek():
-            # Parse number and add to expression.
-            case c if c.isdigit():
-                num = self.parse_number()
-                exp.append(num)
-            # Append nested expression to list of expression to list of expressions.
-            case '(':
-                exp.append(self.parse_expression())
-            case 'b':
-                exp.append(self.parse_binding())
-            case _:
-                raise TypeError(f"Invalid argument to {exp_name} expression.")
-
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        match self.peek():
-            # Parse number and add to expression.
-            case c if c.isdigit():
-                num = self.parse_number()
-                exp.append(num)
-            # Append nested expression to list of expression to list of expressions.
-            case '(':
-                exp.append(self.parse_expression())
-            case 'b':
-                exp.append(self.parse_binding())
-            case _:
-                raise TypeError(f"Invalid argument to {exp_name} expression.")
-
-        # Consume whitespace.
-        self.skip_whitespace()
-
-        # Skip closing parens.
-        if self.peek() != '' and self.peek() == ')':
-            self.pos += 1
-        else:
-            raise TypeError(f"{exp_name} expression missing closing parens.")
-
-        return exp
-
-    def parse_let_and_if_helper(self) -> list:
-        """
-        Parses test, consequent and alternate of if expressions.
-
-        Returns:
-            list: AST of expression that has been parsed.
-
-        Raises:
-            NotImplementedError: Invalid leading character is found.
-        """
-        # Consume whitespace.
-        self.skip_whitespace()
-    
-        # Parse expression.
-        match self.peek():
-            case '':
-                raise EOFError("unexpected end of input.")
-            case c if c.isdigit():
-                val = self.parse_number()
-            case '#':
-                val = self.parse_boolean_or_char()
-            case '(':
-                val = self.parse_expression()
-            case 'b':
-                val = self.parse_binding()
-            case c:
-                raise NotImplementedError(f"found {c}.")
-
-        # Comsume any trailing whitespace.
-        self.skip_whitespace()
+        # Convert to integer.
+        val = int(self.text)
+
+        # Consume text from input.
+        self.match()
 
         return val
 
-    def parse_if(self) -> list:
+    def parse_char(self) -> str:
         """
-        Parses conditional statement in the form of (if test conseq altern).
+        Parses character from string.
 
         Returns:
-            list: ["if", test, conseq, altern]
+            str: Character value that has been parsed.
         """
-        exp = []
+        # Set text to character value (will be a string).
+        val = self.text
 
-        # Add "if" to expression and skip over it.
-        exp.append("if")
-        self.pos += len("if")
+        # Consume text from input.
+        self.match()
 
-        # Parse test, consequent and alternate, respectively.
-        exp.append(self.parse_let_and_if_helper())
-        exp.append(self.parse_let_and_if_helper())
-        exp.append(self.parse_let_and_if_helper())
+        return val
 
-        # Skip over closing parens.
-        if self.peek() != ')':
-            raise TypeError("Invalid if format.")
-        else:
-            self.pos += 1
-
-        return exp
-
-    def parse_let(self) -> list:
+    def parse_bool(self) -> bool:
         """
-        Parses a let binding in the form of (let ((a e1) (b e2) ...) en).
+        Parses boolean from string.
 
         Returns:
-            list: [e1, e2, ..., ["let", en(with offsets)]]
+            bool: Boolean value that has been parsed.
         """
-        exp = []
-        env = []
-        bindings = []
+        # Extract boolean value.
+        if self.text in ["#t", "#T"]:
+            val = True
+        elif self.text in ["#f", "#F"]:
+            val = False
 
-        # Skip over let.
-        self.pos += len("let")
+        # Consume text from input.
+        self.match()
 
-        # Consume whitespace before bindings start.
-        self.skip_whitespace()
+        return val
 
-        # Skip over parens tht opens bindings.
-        if self.peek() != '(':
-            raise TypeError("Invalid let binding.")
-        else:
-            self.pos += 1
+    def parse_binding(self, bindings: dict) -> str:
+        """
+        Parses binding from identifier.
 
-        # Skip whitespace before opening parens of first binding.
-        self.skip_whitespace()
+        Args:
+            bindings (dict): Map of identifers to indices in environment.
 
-        # Parse all bindings.
-        while self.peek() != ')':
-            # Consume opening parens.
-            if self.peek() != '(':
-                raise TypeError("Invalid let binding.")
-            else:
-                self.pos += 1
+        Returns:
+            str: 'b' concatenated with the binding index.
 
-            # Skip whitespace before binding name.
-            self.skip_whitespace()
+        Raises:
+            RuntimeError: Identifier not in bindings list.
+        """
+        # Get identifier.
+        self.get_identifier()
+        id = self.text
 
-            # Add binding name to list of bindings.
-            name = self.peek_word()
-            if name in bindings:
-                raise TypeError("Invalid let binding.")
-            bindings.append(name)
-            self.pos += len(name)
+        # Ensure identifier in bindings.
+        if not id in bindings:
+            raise RuntimeError(f"Unbound identifier {self.text}.")
 
-            # Get AST for expression.
-            exp.append(self.parse_let_and_if_helper())
+        # Consume binding text.
+        self.match()
 
-            # Skip over closing parens.
-            if self.peek() != ')':
-                raise TypeError("Invalid let binding.")
-            else:
-                self.pos += 1
+        # Return binding index.
+        return f"b{bindings[id]}"
 
-            # Consume any whitespace prior to any potential binding closing.
-            self.skip_whitespace()
 
-        # Skip over closing parens of bindings.
-        if self.peek() != ')':
-            raise TypeError("Invalid let binding.")
-        else:
-            self.pos += 1
+    def parse_expr(self, bindings: dict = None, in_let: bool = False) -> list:
+        """
+        Parses Scheme function from string.
 
-        # Replace any references to bindings with the binding code.
-        for i, binding_name in enumerate(bindings):
-            # Define a regex pattern for the old binding name.
-            # r'\b' is used to exclude consideration of parens as part of a word.
-            regex = r'\b' + binding_name + r'\b'
-            
-            # New binding name.
-            binding = f"b{i}"
-            
-            # Replace variable name with binding name.
-            # Only replace in let's body otherwise it throws self.pos off if replacements occur prior to position of self.pos.
-            self.source = self.source[0:self.pos] + re.sub(regex, binding, self.source[self.pos:])
+        Args:
+            bindings (dict): Map of bindings to indices.
+            in_let (bool): Indicates whether or not to consider identifers as bindings.
 
-        # Update the length of the string now that bindings have been added.
-        self.length = len(self.source)
+        Returns:
+            list: Expression's AST.
 
-        # Add "let" to body portion.
-        env.append("let")
-    
-        # Append number of bindings to env.
-        env.append(len(bindings))
+        Raises:
+            RuntimeError: Unexpected token received.
+        """
+        if not bindings:
+            bindings = {}
 
-        # Parse body of let.
-        env.append(self.parse_let_and_if_helper())
+        ast = []
 
-        # Skip whitespace prior to closing of let binding.
-        self.skip_whitespace()
+        # Consume opening parenthesis.
+        self.match()
 
-        # Consume final closing parens of let binding.
-        if self.peek() != ')':
-            raise TypeError("Invalid let binding.")
-        else:
-            self.pos += 1
+        match self.get_token():
+            case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
+                ast = self.parse_args(num_args = 1, bindings = bindings, in_let = in_let)
+            case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
+                ast = self.parse_args(num_args = 2, bindings = bindings, in_let = in_let)
+            case _ if self.get_token() in [Token.IF, Token.STR_SET, Token.VEC_SET]:
+                ast = self.parse_args(num_args = 3, bindings = bindings, in_let = in_let)
+            case _ if self.get_token() in [Token.VEC, Token.BEG]:
+                ast = self.parse_args(num_args = -1, bindings = bindings, in_let = in_let)
+            case Token.LET:
+                ast = self.parse_let(bindings)
+            case Token.CP:
+                ast = []
+            case Token.STR:
+                ast = self.parse_string()
+            case _:
+                raise RuntimeError(f"Unexpected token {self.text}")
 
-        # Append body to espression.
-        exp.append(env)
+        # Consume closing parenthesis.
+        if self.get_token() != Token.CP:
+            raise RuntimeError(f"Unexpected token {self.text}")
+        self.match()
 
-        return exp
+        return ast
 
-def scheme_parse(source: str) -> list:
+    def parse_args(self, num_args: int = -1, bindings: dict = None, in_let: bool = False) -> list:
+        """
+        Parses Scheme arguments function from string.
+
+        Args:
+            num_args (int): Number of arguments to parse, -1 means variable arity.
+            bindings (dict): Map of bindings to indices.
+            in_let (bool): Indicates whether or not to consider identifers as bindings.
+
+        Returns:
+            list: Expression's AST.
+
+        Raises:
+            RuntimeError: Unexpected token received.
+        """
+        if not bindings:
+            bindings = {}
+
+        # Insert function name.
+        ast = [self.text]
+
+        # Consume function name.
+        self.match()
+
+        # Parse arguments.
+        n = 0
+        while (num_args == -1 or n < num_args) and self.get_token() != Token.CP:
+            match self.get_token():
+                case Token.INT:
+                    ast.append(self.parse_int())
+                case Token.CHAR:
+                    ast.append(self.parse_char())
+                case Token.BOOL:
+                    ast.append(self.parse_bool())
+                case Token.OP:
+                    ast.append(self.parse_expr(bindings = bindings, in_let = in_let))
+                case _ if in_let and self.get_token() == Token.ID:
+                    ast.append(self.parse_binding(bindings))
+                case _:
+                    raise RuntimeError(f"Unexpected token {self.text}")
+
+            n += 1
+
+        # Ensure correct number of arguments parsed if not variable arity.
+        if not num_args == -1 and n != num_args:
+            raise RuntimeError(f"Incorrect number of arguments to {ast[0]}.")
+
+        return ast
+
+    def parse_string(self) -> list:
+        """
+        Parses Scheme string literal.
+
+        Returns:
+            list: String's AST.
+
+        Raises:
+            RuntimeError: Unexpected token received.
+        """
+        # Insert function name.
+        ast = [self.text]
+
+        # Consume function name.
+        self.match()
+
+        # Get string literal from source.
+        self.get_string()
+
+        for char in self.text[1:-1]:
+            ast.append(f"#\\{char}")
+
+        # Consume string.
+        self.match()
+
+        return ast
+
+    def parse_let(self, bindings_ind: dict = {}) -> list:
+        """
+        Parses let expression's bindings and expression.
+
+        Returns:
+            list: Expression's AST.
+            bindings_ind (dict): Map of binding names to binding indices.
+
+        Raises:
+            RuntimeError: Unexpected token received or invalid binding.
+        """
+        if not bindings_ind:
+            bindings_ind = {}
+
+        # Insert function name.
+        ast = [self.text]
+
+        # Consume "let".
+        self.match()
+
+        # Parse bindings where bindings list maps binding names to expressions.
+        bindings = OrderedDict()
+
+        # Consume opening parenthesis.
+        if self.get_token() != Token.OP:
+            raise RuntimeError(f"Unexpected token {self.text}")
+        self.match()
+
+        while t := self.get_token() != Token.CP:
+            # Consume binding's opening parenthesis.
+            if t != Token.OP:
+                raise RuntimeError("Unexpected token {self.text}")
+            self.match()
+
+            # Get identifier.
+            self.get_identifier()
+            binding_name = self.text
+            self.match()
+
+            # Parse corresponding expression.
+            match self.get_token():
+                case Token.INT:
+                    expr = self.parse_int()
+                case Token.CHAR:
+                    expr = self.parse_char()
+                case Token.BOOL:
+                    expr = self.parse_bool()
+                case Token.OP:
+                    expr = self.parse_expr()
+                case _:
+                    raise RuntimeError(f"Unexpected token {self.text}")
+
+            # Consume closing parenthesis of binding.
+            if self.get_token() != Token.CP:
+                raise RuntimeError(f"Unexpected token {self.text}")
+            self.match()
+
+            # Ensure binding name is unique.
+            if binding_name in bindings:
+                raise RuntimeError(f"Repeat binding name detected {binding_name}")
+
+            # Add binding to bindings list.
+            bindings[binding_name] = expr
+
+        # Add bindings to bindings list.
+        bindings_list = []
+        num_ind = len(bindings_ind)
+        for i, binding in enumerate(bindings):
+            bindings_list.append(bindings[binding])
+            bindings_ind[binding] = i + num_ind
+
+        # Add binding expressions to ast.
+        ast.append(bindings_list)
+
+        # Consume closing parenthesis of bindings.
+        self.match()
+
+        # Parse expressions.
+        expr_list = []
+        while self.get_token() != Token.CP:
+            match self.get_token():
+                case Token.INT:
+                    expr_list.append(self.parse_int())
+                case Token.CHAR:
+                    expr_list.append(self.parse_char())
+                case Token.BOOL:
+                    expr_list.append(self.parse_bool())
+                case Token.OP:
+                    expr_list.append(self.parse_expr(bindings = bindings_ind, in_let = True))
+                case Token.ID:
+                    expr_list.append(self.parse_binding(bindings_ind))
+                case _:
+                    raise RuntimeError(f"Unexpected token {self.text}")
+
+        # Append expression list to AST.
+        ast.append(expr_list)
+
+        return ast
+
+
+class Token(enum.IntEnum):
     """
-    Wrapper around parsing function for Scheme programs.
+    Enumerates different token types.
+    """
+    OP = enum.auto()
+    CP = enum.auto()
+    EOI = enum.auto()
+    INT = enum.auto()
+    CHAR = enum.auto()
+    BOOL = enum.auto()
+    ADD1 = enum.auto()
+    SUB1 = enum.auto()
+    INT_TO_CHAR = enum.auto()
+    CHAR_TO_INT = enum.auto()
+    IS_NULL = enum.auto()
+    IS_ZERO = enum.auto()
+    NOT = enum.auto()
+    IS_INT = enum.auto()
+    IS_BOOL = enum.auto()
+    PLUS = enum.auto()
+    MINUS = enum.auto()
+    TIMES = enum.auto()
+    LT = enum.auto()
+    GT = enum.auto()
+    LEQ = enum.auto()
+    GEQ = enum.auto()
+    EQ = enum.auto()
+    LET = enum.auto()
+    ID = enum.auto()
+    IF = enum.auto()
+    CONS = enum.auto()
+    CAR = enum.auto()
+    CDR = enum.auto()
+    STR = enum.auto()
+    STR_REF = enum.auto()
+    STR_SET = enum.auto()
+    STR_APP = enum.auto()
+    VEC = enum.auto()
+    VEC_REF = enum.auto()
+    VEC_SET = enum.auto()
+    VEC_APP = enum.auto()
+    BEG = enum.auto()
 
-    Args:
-        source (str): Scheme source program.
+def scheme_parse(source: str) -> int | bool | str | list:
+    """
+    Wrapper around Parser class and parse() function.
 
     Returns:
-        list: Abstract syntax tree in the form of a Python list.
+        int | str | bool | list : AST containing expressions that have been parsed.
     """
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("(let ((a 5) (b (+ 4 5)))  (+ (+ a b) b))"))
+    print(scheme_parse("(let ((a 4) (b 5)) b)"))

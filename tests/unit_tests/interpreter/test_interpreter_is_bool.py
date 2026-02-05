@@ -13,9 +13,8 @@ import sys
 import os
 import subprocess
 
-INTERPRETER_UTILS_DIR = "./interpreter/utils/"
-INTERPRETER_EXECS_DIR = "./interpreter/execs/"
-INTERPRET = "./interpreter/execs/interpret"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INTERPRET = os.path.join(BASE_DIR, "..", "..", "..", "interpreter", "execs", "interpret")
 
 class IsBoolInterpreterTests(unittest.TestCase):
     """

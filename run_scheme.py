@@ -14,10 +14,12 @@
 import sys
 import subprocess
 from io import StringIO
+import os
 
 ARGC = [1, 2, 3]
-INTERPRETER_UTILS_DIR = "./interpreter/utils/"
-INTERPRETER_EXECS_DIR = "./interpreter/execs/"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INTERPRETER_UTILS_DIR = os.path.join(BASE_DIR, "interpreter", "utils")
+INTERPRETER_EXECS_DIR = os.path.join(BASE_DIR, "interpreter", "execs")
 
 if __name__ == "__main__":
     ret_code = 0
@@ -35,76 +37,76 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         # Open pipe between compiler and interpreter.
         p1 = subprocess.Popen(["python3", "compiler/compile.py"], stdout = subprocess.PIPE)
-        p2 = subprocess.Popen(["./interpreter/execs/interpret"], stdin = p1.stdout)
+        stdout, _ = p1.communicate()
 
-        p1.stdout.close()
-        p2.wait()
-        p1.wait()
-
-        # Capture return codes to indicate successful termination.
         if p1.returncode != 0:
             print("Compilation failed.")
             ret_code = 1
-        
-        if p2.returncode != 0:
-            print("Interpretation failed.")
-            ret_code = 1
+        else:
+            # Only run interpreter if compilation succeeded
+            p2 = subprocess.Popen(["./interpreter/execs/interpret"], stdin = subprocess.PIPE)
+
+            p2.communicate(input=stdout)
+
+            if p2.returncode != 0:
+                print("Interpretation failed.")
+                ret_code = 1
 
     # Provide arguments to compiler and/or interpreter.
     elif len(sys.argv) == 3:
         # Open pipe between compiler and interpreter.
         p1 = subprocess.Popen(["python3", "compiler/compile.py", sys.argv[1]], stdout = subprocess.PIPE)
-        p2 = subprocess.Popen(["./interpreter/execs/interpret", sys.argv[2]], stdin = p1.stdout)
-    
-        p1.stdout.close()
-        p2.wait()
-        p1.wait()
-    
-        # Capture return codes to indicate successful termination.
+        stdout, _ = p1.communicate()
+
         if p1.returncode != 0:
             print("Compilation failed.")
             ret_code = 1
-            
-        if p2.returncode != 0:
-            print("Interpretation failed.")
-            ret_code = 1
+        else:
+            # Only run interpreter if compilation succeeded
+            p2 = subprocess.Popen(["./interpreter/execs/interpret", sys.argv[2]], stdin = subprocess.PIPE)
+
+            p2.communicate(input=stdout)
+
+            if p2.returncode != 0:
+                print("Interpretation failed.")
+                ret_code = 1
 
     # Check which argument was provided and open respctive files.
     elif len(sys.argv[1]) > 2 and sys.argv[1][-3:] == ".txt":
         # Open pipe between compiler and interpreter.
         p1 = subprocess.Popen(["python3", "compiler/compile.py"], stdout = subprocess.PIPE)
-        p2 = subprocess.Popen(["./interpreter/execs/interpret", sys.argv[1]], stdin = p1.stdout)
-    
-        p1.stdout.close()
-        p2.wait()
-        p1.wait()
-    
-        # Capture return codes to indicate successful termination.
+        stdout, _ = p1.communicate()
+
         if p1.returncode != 0:
             print("Compilation failed.")
             ret_code = 1
-            
-        if p2.returncode != 0:
-            print("Interpretation failed.")
-            ret_code = 1
+        else:
+            # Only run interpreter if compilation succeeded
+            p2 = subprocess.Popen(["./interpreter/execs/interpret", sys.argv[1]], stdin = subprocess.PIPE)
+
+            p2.communicate(input=stdout)
+
+            if p2.returncode != 0:
+                print("Interpretation failed.")
+                ret_code = 1
 
     elif len(sys.argv[1]) > 3 and sys.argv[1][-4:] == ".scm":
         # Open pipe between compiler and interpreter.
         p1 = subprocess.Popen(["python3", "compiler/compile.py", sys.argv[1]], stdout = subprocess.PIPE)
-        p2 = subprocess.Popen(["./interpreter/execs/interpret"], stdin = p1.stdout)
-    
-        p1.stdout.close()
-        p2.wait()
-        p1.wait()
-    
-        # Capture return codes to indicate successful termination.
+        stdout, _ = p1.communicate()
+
         if p1.returncode != 0:
             print("Compilation failed.")
             ret_code = 1
-            
-        if p2.returncode != 0:
-            print("Interpretation failed.")
-            ret_code = 1
+        else:
+            # Only run interpreter if compilation succeeded
+            p2 = subprocess.Popen(["./interpreter/execs/interpret"], stdin = subprocess.PIPE)
+
+            p2.communicate(input=stdout)
+
+            if p2.returncode != 0:
+                print("Interpretation failed.")
+                ret_code = 1
 
     else:
         print("usage: python3 run_scheme.py [ input_file.scm ] [ output_file.txt ]")
