@@ -10,6 +10,7 @@
 
 import enum
 import re
+from collections import OrderedDict
 
 WSP = ['\n', '\r', '\t', ' ']
 
@@ -128,6 +129,9 @@ class Parser:
             case _ if t := re.match(r"=", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.EQ
+            case _ if t := re.match(r"let", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.LET
             case _ if t := re.match(r"if", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.IF
@@ -167,8 +171,11 @@ class Parser:
             case _ if t := re.match(r"begin", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.BEG
-            case _:
+            case _ if not re.match(r"[^(` \n\t\r1-9#\(\))][^(` \n\t\r\(\))]*", self.source[self.pos:]):
                 raise RuntimeError("Unrecognized token.")
+            case _:
+                self.get_identifier()
+                return Token.ID
 
     def match(self):
         """
@@ -198,7 +205,7 @@ class Parser:
         match self.source[self.pos:]:
             case _ if self.pos == self.length:
                 raise RuntimeError("Unexpected end of input.")
-            case _ if t := re.match(r"[^(` \n\t\r1-9)]+", self.source[self.pos:]):
+            case _ if t := re.match(r"[^(` \n\t\r1-9#)\(\)][^(` \n\t\r\(\))]*", self.source[self.pos:]):
                 self.text = t.group(0)
             case _:
                 raise RuntimeError("Illegal identifier.")
@@ -242,7 +249,7 @@ class Parser:
             case Token.OP:
                 ast = self.parse_expr()
             case _:
-                raise RuntimeError(f"Unexpected token {self.text}")
+                raise RuntimeError(f"Unexpected token {self.text}.")
 
         # Ensure end of input has been reached.
         if self.get_token() != Token.EOI:
@@ -298,9 +305,41 @@ class Parser:
 
         return val
 
-    def parse_expr(self) -> list:
+    def parse_binding(self, bindings: dict) -> str:
+        """
+        Parses binding from identifier.
+
+        Args:
+            bindings (dict): Map of identifers to indices in environment.
+
+        Returns:
+            str: 'b' concatenated with the binding index.
+
+        Raises:
+            RuntimeError: Identifier not in bindings list.
+        """
+        # Get identifier.
+        self.get_identifier()
+        id = self.text
+
+        # Ensure identifier in bindings.
+        if not id in bindings:
+            raise RuntimeError(f"Unbound identifier {self.text}.")
+
+        # Consume binding text.
+        self.match()
+
+        # Return binding index.
+        return f"b{bindings[id]}"
+
+
+    def parse_expr(self, bindings: dict = None, in_let: bool = False) -> list:
         """
         Parses Scheme function from string.
+
+        Args:
+            bindings (dict): Map of bindings to indices.
+            in_let (bool): Indicates whether or not to consider identifers as bindings.
 
         Returns:
             list: Expression's AST.
@@ -308,6 +347,9 @@ class Parser:
         Raises:
             RuntimeError: Unexpected token received.
         """
+        if not bindings:
+            bindings = {}
+
         ast = []
 
         # Consume opening parenthesis.
@@ -315,13 +357,15 @@ class Parser:
 
         match self.get_token():
             case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
-                ast = self.parse_unary()
+                ast = self.parse_args(num_args = 1, bindings = bindings, in_let = in_let)
             case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
-                ast = self.parse_binary()
+                ast = self.parse_args(num_args = 2, bindings = bindings, in_let = in_let)
             case _ if self.get_token() in [Token.IF, Token.STR_SET, Token.VEC_SET]:
-                ast = self.parse_ternary()
+                ast = self.parse_args(num_args = 3, bindings = bindings, in_let = in_let)
             case _ if self.get_token() in [Token.VEC, Token.BEG]:
-                ast = self.parse_variable_arity()
+                ast = self.parse_args(num_args = -1, bindings = bindings, in_let = in_let)
+            case Token.LET:
+                ast = self.parse_let(bindings)
             case Token.CP:
                 ast = []
             case Token.STR:
@@ -336,9 +380,14 @@ class Parser:
 
         return ast
 
-    def parse_unary(self) -> list:
+    def parse_args(self, num_args: int = -1, bindings: dict = None, in_let: bool = False) -> list:
         """
-        Parses Scheme unary function from string.
+        Parses Scheme arguments function from string.
+
+        Args:
+            num_args (int): Number of arguments to parse, -1 means variable arity.
+            bindings (dict): Map of bindings to indices.
+            in_let (bool): Indicates whether or not to consider identifers as bindings.
 
         Returns:
             list: Expression's AST.
@@ -346,44 +395,18 @@ class Parser:
         Raises:
             RuntimeError: Unexpected token received.
         """
+        if not bindings:
+            bindings = {}
+
         # Insert function name.
         ast = [self.text]
 
         # Consume function name.
         self.match()
 
-        match self.get_token():
-            case Token.INT:
-                ast.append(self.parse_int())
-            case Token.CHAR:
-                ast.append(self.parse_char())
-            case Token.BOOL:
-                ast.append(self.parse_bool())
-            case Token.OP:
-                ast.append(self.parse_expr())
-            case _:
-                raise RuntimeError(f"Unexpected token {self.text}")
-
-        return ast
-
-    def parse_binary(self) -> list:
-        """
-        Parses Scheme binary function from string.
-
-        Returns:
-            list: Expression's AST.
-
-        Raises:
-            RuntimeError: Unexpected token received.
-        """
-        # Insert function name.
-        ast = [self.text]
-
-        # Consume function name.
-        self.match()
-
-        i = 0
-        while i < 2:
+        # Parse arguments.
+        n = 0
+        while (num_args == -1 or n < num_args) and self.get_token() != Token.CP:
             match self.get_token():
                 case Token.INT:
                     ast.append(self.parse_int())
@@ -392,74 +415,17 @@ class Parser:
                 case Token.BOOL:
                     ast.append(self.parse_bool())
                 case Token.OP:
-                    ast.append(self.parse_expr())
+                    ast.append(self.parse_expr(bindings = bindings, in_let = in_let))
+                case _ if in_let and self.get_token() == Token.ID:
+                    ast.append(self.parse_binding(bindings))
                 case _:
                     raise RuntimeError(f"Unexpected token {self.text}")
-            i += 1
 
-        return ast
+            n += 1
 
-    def parse_ternary(self) -> list:
-        """
-        Parses Scheme ternary function (such as an if statement) from string.
-
-        Returns:
-            list: Expression's AST.
-
-        Raises:
-            RuntimeError: Unexpected token received.
-        """
-        # Insert function name.
-        ast = [self.text]
-
-        # Consume function name.
-        self.match()
-
-        i = 0
-        while i < 3:
-            match self.get_token():
-                case Token.INT:
-                    ast.append(self.parse_int())
-                case Token.CHAR:
-                    ast.append(self.parse_char())
-                case Token.BOOL:
-                    ast.append(self.parse_bool())
-                case Token.OP:
-                    ast.append(self.parse_expr())
-                case _:
-                    raise RuntimeError(f"Unexpected token {self.text}")
-            i += 1
-
-        return ast
-
-    def parse_variable_arity(self) -> list:
-        """
-        Parses Scheme function with variable arity from string.
-
-        Returns:
-            list: Expression's AST.
-
-        Raises:
-            RuntimeError: Unexpected token received.
-        """
-        # Insert function name.
-        ast = [self.text]
-
-        # Consume function name.
-        self.match()
-
-        while self.get_token() != Token.CP:
-            match self.get_token():
-                case Token.INT:
-                    ast.append(self.parse_int())
-                case Token.CHAR:
-                    ast.append(self.parse_char())
-                case Token.BOOL:
-                    ast.append(self.parse_bool())
-                case Token.OP:
-                    ast.append(self.parse_expr())
-                case _:
-                    raise RuntimeError(f"Unexpected token {self.text}")
+        # Ensure correct number of arguments parsed if not variable arity.
+        if not num_args == -1 and n != num_args:
+            raise RuntimeError(f"Incorrect number of arguments to {ast[0]}.")
 
         return ast
 
@@ -478,10 +444,10 @@ class Parser:
 
         # Consume function name.
         self.match()
-        
-        # Get string lietral from source.
+
+        # Get string literal from source.
         self.get_string()
-        
+
         for char in self.text[1:-1]:
             ast.append(f"#\\{char}")
 
@@ -490,70 +456,105 @@ class Parser:
 
         return ast
 
-#    def parse_let(self) -> list:
-#        """
-#        Parses let expression's bindings and expression.
-#
-#        Returns:
-#            list: Expression's AST.
-#
-#        Raises:
-#            RuntimeError: Unexpected token received or invalid binding.
-#        """
-#        # Consume "let".
-#        self.match()
-#
-#        # Parse bindings where bindings list maps binding names to expressions.
-#        bindings = {}
-#
-#        # Consume opening parenthesis.
-#        if self.get_token() != Token.OP:
-#            raise RuntimeError(f"Unexpected token {self.text}")
-#        self.match()
-#
-#        while t := self.get_token() != Token.CP:
-#            # Consume binding's opening parenthesis.
-#            if t != Token.OP:
-#                raise RuntimeError("Unexpected token {self.text}")
-#            self.match()
-#
-#            # Get identifier.
-#            self.get_identifier()
-#
-#            binding_name = self.text
-#
-#            self.match()
-#
-#            # Parse corresponding expression.
-#            match self.get_token():
-#                case Token.INT:
-#                    expr = self.parse_int()
-#                case Token.CHAR:
-#                    expr = self.parse_char()
-#                case Token.BOOL:
-#                    expr = self.parse_bool()
-#                case Token.OP:
-#                    expr = self.parse_expr()
-#                case _:
-#                    raise RuntimeError(f"Unexpected token {self.text}")
-#
-#            # Consume closing parenthesis of binding.
-#            if self.get_token() != Token.CP:
-#                raise RuntimeError(f"Unexpected token {self.text}")
-#            self.match()
-#
-#            # Ensure binding name is unique.
-#            if binding_name in bindings:
-#                raise RuntimeError(f"Repeat binding name detected {binding_name}")
-#
-#            # Add binding to bindings list.
-#            bindings[binding_name] = expr
-#
-#        # Consume closing parenthesis of bindings.
-#        self.match()
-#
-#        print(bindings)
-#
+    def parse_let(self, bindings_ind: dict = {}) -> list:
+        """
+        Parses let expression's bindings and expression.
+
+        Returns:
+            list: Expression's AST.
+            bindings_ind (dict): Map of binding names to binding indices.
+
+        Raises:
+            RuntimeError: Unexpected token received or invalid binding.
+        """
+        if not bindings_ind:
+            bindings_ind = {}
+
+        # Insert function name.
+        ast = [self.text]
+
+        # Consume "let".
+        self.match()
+
+        # Parse bindings where bindings list maps binding names to expressions.
+        bindings = OrderedDict()
+
+        # Consume opening parenthesis.
+        if self.get_token() != Token.OP:
+            raise RuntimeError(f"Unexpected token {self.text}")
+        self.match()
+
+        while t := self.get_token() != Token.CP:
+            # Consume binding's opening parenthesis.
+            if t != Token.OP:
+                raise RuntimeError("Unexpected token {self.text}")
+            self.match()
+
+            # Get identifier.
+            self.get_identifier()
+            binding_name = self.text
+            self.match()
+
+            # Parse corresponding expression.
+            match self.get_token():
+                case Token.INT:
+                    expr = self.parse_int()
+                case Token.CHAR:
+                    expr = self.parse_char()
+                case Token.BOOL:
+                    expr = self.parse_bool()
+                case Token.OP:
+                    expr = self.parse_expr()
+                case _:
+                    raise RuntimeError(f"Unexpected token {self.text}")
+
+            # Consume closing parenthesis of binding.
+            if self.get_token() != Token.CP:
+                raise RuntimeError(f"Unexpected token {self.text}")
+            self.match()
+
+            # Ensure binding name is unique.
+            if binding_name in bindings:
+                raise RuntimeError(f"Repeat binding name detected {binding_name}")
+
+            # Add binding to bindings list.
+            bindings[binding_name] = expr
+
+        # Add bindings to bindings list.
+        bindings_list = []
+        num_ind = len(bindings_ind)
+        for i, binding in enumerate(bindings):
+            bindings_list.append(bindings[binding])
+            bindings_ind[binding] = i + num_ind
+
+        # Add binding expressions to ast.
+        ast.append(bindings_list)
+
+        # Consume closing parenthesis of bindings.
+        self.match()
+
+        # Parse expressions.
+        expr_list = []
+        while self.get_token() != Token.CP:
+            match self.get_token():
+                case Token.INT:
+                    expr_list.append(self.parse_int())
+                case Token.CHAR:
+                    expr_list.append(self.parse_char())
+                case Token.BOOL:
+                    expr_list.append(self.parse_bool())
+                case Token.OP:
+                    expr_list.append(self.parse_expr(bindings = bindings_ind, in_let = True))
+                case Token.ID:
+                    expr_list.append(self.parse_binding(bindings_ind))
+                case _:
+                    raise RuntimeError(f"Unexpected token {self.text}")
+
+        # Append expression list to AST.
+        ast.append(expr_list)
+
+        return ast
+
 
 class Token(enum.IntEnum):
     """
@@ -582,8 +583,9 @@ class Token(enum.IntEnum):
     LEQ = enum.auto()
     GEQ = enum.auto()
     EQ = enum.auto()
-    IF = enum.auto()
     LET = enum.auto()
+    ID = enum.auto()
+    IF = enum.auto()
     CONS = enum.auto()
     CAR = enum.auto()
     CDR = enum.auto()
@@ -607,4 +609,4 @@ def scheme_parse(source: str) -> int | bool | str | list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("(begin 3 (+ 3 4))"))
+    print(scheme_parse("(let ((a 4) (b 5)) b)"))

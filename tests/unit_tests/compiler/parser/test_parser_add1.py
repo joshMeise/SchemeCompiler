@@ -66,5 +66,12 @@ class Add1ParseTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self._parse("(add1 0")
 
+    def test_add1_identifier(self):
+        """
+        Test (add1 a)
+        """
+        with self.assertRaises(RuntimeError):
+            self._parse("(add1 a")
+
 if __name__ == '__main__':
     unittest.main()

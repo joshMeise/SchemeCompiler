@@ -120,9 +120,10 @@ class Compiler:
                         emit(get_len(rest[2]))
                         self.compile(rest[2])
                     case "let":
+                        self.compile(rest[0])
                         emit(I.LET)
-                        emit(rest[0])
-                        self.compile(rest[1:])
+                        emit(len(rest[0]))
+                        self.compile(rest[1])
                         emit(I.END_LET)
                     case "cons":
                         self.compile(rest[1])
@@ -359,6 +360,6 @@ class I(enum.IntEnum):
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function(["begin", ["string", "#\\h", "#\\i"], 4, ["+", 3, 4]])
+    compiler.compile_function(["let", [4], [["let", [5], [["+", "b1", "b0"]]]]])
     print(compiler.code)
 

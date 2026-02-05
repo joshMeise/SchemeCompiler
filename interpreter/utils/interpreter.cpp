@@ -538,31 +538,32 @@ void Interpreter::jump_over_else(void) {
 
 // Create a new environment for the binding and load the given number of values from the stack into the environment.
 void Interpreter::let(void) {
-    uint64_t num_bindings;
+    uint64_t num_bindings, old_size;
     int i;
 
     // Get number of bindings to load.
     num_bindings = read_word();
 
+    // Fin size of environment before extension.
+    old_size = env.size();
+
     // Create environment for given number of bindings.
-    env.push_back(std::vector<uint64_t>(num_bindings));
+    env.resize(old_size + num_bindings);
 
     // Place values from stack into environment.
-    for (i = 0; i < num_bindings; i++)
-        env.back()[num_bindings - i - 1] = pop();
-
+    for (i = 0; i < num_bindings; i++) env[num_bindings - i + old_size - 1] = pop();
 }
 
 // Get a value from the environment onto stack.
 void Interpreter::get_from_env(void) {
     // Push value from given index of environment onto stack.
-    push(env.back()[read_word()]);
+    push(env[read_word()]);
 }
 
 // Clean up binding's environment.
 void Interpreter::end_let(void) {
-    // Remove environment at the back of environment vector.
-    env.pop_back();
+    // Clear environment.
+    env.clear();
 }
 
 // Create cons cell.

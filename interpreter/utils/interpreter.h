@@ -32,7 +32,7 @@ private:
     std::vector<uint64_t> code;
     std::vector<uint64_t> stack;
     int pc;
-    std::vector<std::vector<uint64_t>> env;
+    std::vector<uint64_t> env;
     std::vector<uint64_t> heap;
     uint64_t heap_ptr;
 
