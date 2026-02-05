@@ -1,5 +1,8 @@
 # SchemeCompiler
 
+## Note to grader:
+Please see assignment2 branch.
+
 ## Instructions
 
 ### Running tests:
