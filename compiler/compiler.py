@@ -69,6 +69,7 @@ class Compiler:
         emit = self.code.append
 
         match expr:
+            # Handle the case of the empty vector constructor.
             case "vector":
                 emit(I.VEC)
                 emit(0)
@@ -106,6 +107,10 @@ class Compiler:
                         self.compile(rest[1])
                         self.compile(rest[2])
                         self.emit_symbol(w)
+                    case w if w in ["string", "vector", "begin"]:
+                        self.compile(rest)
+                        self.emit_symbol(w)
+                        emit(len(rest))
                     case "if":
                         self.compile(rest[0])
                         emit(I.POP_JUMP_IF_FALSE)
@@ -123,10 +128,6 @@ class Compiler:
                         self.compile(rest[1])
                         self.compile(rest[0])
                         emit(I.CONS)
-                    case w if w in ["string", "vector"]:
-                        self.compile(rest)
-                        self.emit_symbol(w)
-                        emit(len(rest))
                     case _:
                         self.compile(first)
                         self.compile(rest)
@@ -214,6 +215,8 @@ class Compiler:
                 emit(I.VEC_SET)
             case "vector-append":
                 emit(I.VEC_APP)
+            case "begin":
+                emit(I.BEG)
 
 def get_len(expr) -> int:
     """
@@ -352,9 +355,10 @@ class I(enum.IntEnum):
     VEC_REF = enum.auto()
     VEC_SET = enum.auto()
     VEC_APP = enum.auto()
+    BEG = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function(["string", "#\\h", "#\\i"])
+    compiler.compile_function(["begin", ["string", "#\\h", "#\\i"], 4, ["+", 3, 4]])
     print(compiler.code)
 

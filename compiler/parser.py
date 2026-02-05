@@ -164,6 +164,9 @@ class Parser:
             case _ if t := re.match(r"vector", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.VEC
+            case _ if t := re.match(r"begin", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.BEG
             case _:
                 raise RuntimeError("Unrecognized token.")
 
@@ -317,7 +320,7 @@ class Parser:
                 ast = self.parse_binary()
             case _ if self.get_token() in [Token.IF, Token.STR_SET, Token.VEC_SET]:
                 ast = self.parse_ternary()
-            case Token.VEC:
+            case _ if self.get_token() in [Token.VEC, Token.BEG]:
                 ast = self.parse_variable_arity()
             case Token.CP:
                 ast = []
@@ -592,6 +595,7 @@ class Token(enum.IntEnum):
     VEC_REF = enum.auto()
     VEC_SET = enum.auto()
     VEC_APP = enum.auto()
+    BEG = enum.auto()
 
 def scheme_parse(source: str) -> int | bool | str | list:
     """
@@ -603,4 +607,4 @@ def scheme_parse(source: str) -> int | bool | str | list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    print(scheme_parse("(string \"hi\")"))
+    print(scheme_parse("(begin 3 (+ 3 4))"))

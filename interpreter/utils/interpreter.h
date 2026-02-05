@@ -143,4 +143,7 @@ private:
 
     // Create new vector which is a single vector appended to another.
     void vec_append(void);
+
+    // Clean up stack after evaluating expressions in begin.
+    void begin(void);
 };

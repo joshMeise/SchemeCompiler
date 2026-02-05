@@ -75,7 +75,8 @@ enum class OpCode : uint64_t {
     VEC = 32,
     VEC_REF = 33,
     VEC_SET = 34,
-    VEC_APP = 35
+    VEC_APP = 35,
+    BEG = 36
 };
 
 // Build insturction out of 4 bytes.
@@ -268,6 +269,10 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::VEC_APP:
                 // Concatenate vectors.
                 vec_append();
+                break;
+            case OpCode::BEG:
+                // Clean up stack and place return value on top.
+                begin();
                 break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
@@ -793,5 +798,22 @@ void Interpreter::vec_append(void) {
 
     // Advance heap ppinter.
     heap_ptr += (tot_len + 1);
+}
+
+// Clean up stack after evaluating expressions in begin.
+void Interpreter::begin(void) {
+    uint64_t ret_val, i, numel;
+
+    // Save value that is to be returned by begin expression.
+    ret_val = pop();
+
+    // Number of elements to be popped off stack.
+    numel = read_word();
+
+    // Pop remaining elements off of stack.
+    for (i = 1; i < numel; i++) pop();
+
+    // Push return value back onto stack.
+    push(ret_val);
 }
 
