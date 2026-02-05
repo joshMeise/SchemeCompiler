@@ -14,6 +14,49 @@ from collections import OrderedDict
 
 WSP = ['\n', '\r', '\t', ' ']
 
+class Token(enum.IntEnum):
+    """
+    Enumerates different token types.
+    """
+    OP = enum.auto()
+    CP = enum.auto()
+    EOI = enum.auto()
+    INT = enum.auto()
+    CHAR = enum.auto()
+    BOOL = enum.auto()
+    ADD1 = enum.auto()
+    SUB1 = enum.auto()
+    INT_TO_CHAR = enum.auto()
+    CHAR_TO_INT = enum.auto()
+    IS_NULL = enum.auto()
+    IS_ZERO = enum.auto()
+    NOT = enum.auto()
+    IS_INT = enum.auto()
+    IS_BOOL = enum.auto()
+    PLUS = enum.auto()
+    MINUS = enum.auto()
+    TIMES = enum.auto()
+    LT = enum.auto()
+    GT = enum.auto()
+    LEQ = enum.auto()
+    GEQ = enum.auto()
+    EQ = enum.auto()
+    LET = enum.auto()
+    ID = enum.auto()
+    IF = enum.auto()
+    CONS = enum.auto()
+    CAR = enum.auto()
+    CDR = enum.auto()
+    STR = enum.auto()
+    STR_REF = enum.auto()
+    STR_SET = enum.auto()
+    STR_APP = enum.auto()
+    VEC = enum.auto()
+    VEC_REF = enum.auto()
+    VEC_SET = enum.auto()
+    VEC_APP = enum.auto()
+    BEG = enum.auto()
+
 class Parser:
     """
     Class to handle parsing of Scheme program input text.
@@ -554,50 +597,6 @@ class Parser:
         ast.append(expr_list)
 
         return ast
-
-
-class Token(enum.IntEnum):
-    """
-    Enumerates different token types.
-    """
-    OP = enum.auto()
-    CP = enum.auto()
-    EOI = enum.auto()
-    INT = enum.auto()
-    CHAR = enum.auto()
-    BOOL = enum.auto()
-    ADD1 = enum.auto()
-    SUB1 = enum.auto()
-    INT_TO_CHAR = enum.auto()
-    CHAR_TO_INT = enum.auto()
-    IS_NULL = enum.auto()
-    IS_ZERO = enum.auto()
-    NOT = enum.auto()
-    IS_INT = enum.auto()
-    IS_BOOL = enum.auto()
-    PLUS = enum.auto()
-    MINUS = enum.auto()
-    TIMES = enum.auto()
-    LT = enum.auto()
-    GT = enum.auto()
-    LEQ = enum.auto()
-    GEQ = enum.auto()
-    EQ = enum.auto()
-    LET = enum.auto()
-    ID = enum.auto()
-    IF = enum.auto()
-    CONS = enum.auto()
-    CAR = enum.auto()
-    CDR = enum.auto()
-    STR = enum.auto()
-    STR_REF = enum.auto()
-    STR_SET = enum.auto()
-    STR_APP = enum.auto()
-    VEC = enum.auto()
-    VEC_REF = enum.auto()
-    VEC_SET = enum.auto()
-    VEC_APP = enum.auto()
-    BEG = enum.auto()
 
 def scheme_parse(source: str) -> int | bool | str | list:
     """
