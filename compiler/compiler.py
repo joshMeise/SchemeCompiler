@@ -58,13 +58,13 @@ class Compiler:
         self.code = []
         self.max_locals_count = 0
 
-    def compile(self, expr, bindings) -> dict:
+    def compile(self, expr, bindings: list):
         """
         Compiles given expression into bytecode.
 
         Args:
             expr: Expression to be compiled.
-            in_let (bool): Indicates whether an expression is in a let statement or not.
+            bindings (list): Stack of binding environments.
 
         Raises:
             RuntimeError: Unbound variable name.
@@ -131,7 +131,7 @@ class Compiler:
                         else:
                             bindings.append(bindings[-1].copy())
                         for i, binding in enumerate(rest[0]):
-                            self.compile(rest[0][i][1], bindings)
+                            self.compile(rest[0][i][1], bindings[0:-1])
                             if binding[0] in bindings[-1]:
                                 bindings[-1][binding[0]] = (new_val(bindings[-1]), bindings[-1][binding[0]][1] + 1)
                             else:
@@ -161,8 +161,6 @@ class Compiler:
                     case _:
                         self.compile(first, bindings)
                         self.compile(rest, bindings)
-
-        return bindings
 
     def compile_function(self, expr):
         """
@@ -346,7 +344,16 @@ def box_empty_list() -> int:
 
     return ((0 << EMPTY_LIST_SHIFT) & ~EMPTY_LIST_MASK) | EMPTY_LIST_TAG
 
-def new_val(bindings: dict):
+def new_val(bindings: dict) -> int:
+    """
+    Gets runtime index for new binding from environment.
+
+    Args:
+        bindings (dict): Map of binding names to runtime index.
+
+    Returns:
+        int: Runtime index for new binding.
+    """
     if bindings == {}:
         return 0
 
@@ -411,6 +418,6 @@ if __name__ == "__main__":
     #compiler.compile_function(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]])
     #compiler.compile_function(["let", [("a", 4)], ['let', [('a', ['let', [('a', 4)], ['a']])], ['let', [('a', 5)], ['a']]]])
     #compiler.compile_function(['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]])
-    compiler.compile_function(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]])
+    #compiler.compile_function(['let', [('a', 4)], [['let', [('b', 1), ('a', ['let', [('a', 5)], ['b']])], [['let', [('a', 6)], ['a']]]]]])
     print(compiler.code)
 

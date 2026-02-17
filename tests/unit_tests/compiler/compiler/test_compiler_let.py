@@ -78,11 +78,30 @@ class LetCompileTests(unittest.TestCase):
 
     def test_let_many_nested_2(self):
         """
-        Test (let ((a 4)) (let ((a (let ((a 5)) a))) (let ((a 6)) a)))
+        test (let ((a 4)) (let ((a (let ((a 5)) a))) (let ((a 6)) a)))
         """
         self.assertEqual(self._compile(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]]), b"\x01\x00\x00\x00\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x16\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x14\x00\x00\x00\x00\x00\x00\x00\x16\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x18\x00\x00\x00\x00\x00\x00\x00\x16\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x18\x00\x00\x00\x00\x00\x00\x00\x16\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x17\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x18\x00\x00\x00\x00\x00\x00\x00\x18\x00\x00\x00\x00\x00\x00\x00\x18\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00")
 
+    def test_let_unbound_1(self):
+        """
+        test (let ((a 4)) (let ((a (let ((a 5)) b))) (let ((a 6)) a)))
+        """
+        with self.assertRaises(RuntimeError):
+            self._compile(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['b']])], [['let', [('a', 6)], ['a']]]]]])
 
-#
+    def test_let_unbound_2(self):
+        """
+        test (let ((a 4)) (let ((b 4) (a (let ((a 5)) b))) (let ((a 6)) a)))
+        """
+        with self.assertRaises(RuntimeError):
+            self._compile(['let', [('a', 4)], [['let', [('b', 4), ('a', ['let', [('a', 5)], ['b']])], [['let', [('a', 6)], ['a']]]]]])
+
+    def test_let_unbound_3(self):
+        """
+        test (let ((a 4)) (let ((b 4) (a (let ((a 5)) a))) (let ((a 6)) b)))
+        """
+        with self.assertRaises(RuntimeError):
+            self._compile(['let', [('a', 4)], [['let', [('b', 4), ('a', ['let', [('a', 5)], ['b']])], [['let', [('a', 6)], ['b']]]]]])
+
 if __name__ == '__main__':
     unittest.main()
