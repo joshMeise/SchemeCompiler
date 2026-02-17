@@ -302,9 +302,10 @@ class Parser:
         if self.get_token() != Token.EOI:
             raise RuntimeError(f"Unexpected token {self.text}")
 
-        #print(ast)
+        print(ast)
 
-        #ast, _ = resolve_bindings(ast, {})
+        # Map binding names to indices.
+        #ast = map_bindings(ast)
 
         return ast
 
@@ -592,9 +593,6 @@ class Parser:
                 case _:
                     raise RuntimeError(f"Unexpected token {self.text}")
 
-        if len(expr_list) == 0:
-            raise RuntimeError("Missing body for let expression.")
-
         # Append expression list to AST.
         ast.append(expr_list)
 
@@ -660,6 +658,34 @@ class Parser:
 
         return ast
 
+def map_bindings(ast: list, bindings: list = {}) -> list:
+    if not bindings:
+        bindings = {}
+
+    if ast[0] == "let":
+         # Map binding names to indices.
+        for i, binding in enumerate(ast[1]):
+            bindings[binding[0]] = new_val(bindings)
+            ast[1][i] = binding[1]
+            ast[2] = map_bindings(ast[2], bindings)
+    elif type(ast[0]) == str:
+        ast[0] = bindings[ast[0]]
+    elif type(ast[0]) != int:
+        for i, element in enumerate(ast):
+            ast[i] = map_bindings(ast[i], bindings)
+
+    return ast
+
+def new_val(bindings: dict):
+    if not bindings:
+        return 0
+
+    tot = 0
+    for val in bindings:
+        tot += bindings[val]
+
+    return tot + 1
+
 def scheme_parse(source: str) -> int | bool | str | list:
     """
     Wrapper around Parser class and parse() function.
@@ -670,10 +696,4 @@ def scheme_parse(source: str) -> int | bool | str | list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    #print(scheme_parse("(let ((a 4) (b 5)) (+ a b))"))
-    #print(scheme_parse("(let ((a 5) (b (let ((c 4)) c))) (+ a b))"))
-    #print(scheme_parse("(let ((a (let ((b 4)) b))) (let ((c 5)) c))"))
-    print(scheme_parse("(let ((a 4)) (let ((a (let ((a 5)) a))) (let ((a 6)) a)))"))
-    #print(scheme_parse("(let ((a (let ((a 5)) a))) (let ((a 6)) a))"))
-    #print(scheme_parse("(let ((a 4)) (let ((b 4) (a (let ((a 5)) b))) (let ((a 6)) a)))"))
-    #print(scheme_parse("(let ((a 4)) (let ((a 5)) (let ((a 6)) a)))"))
+    print(scheme_parse("(let ((a 4)) (let ((a 5)) (let ((a 6)) a)))"))

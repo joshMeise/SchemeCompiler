@@ -302,10 +302,6 @@ class Parser:
         if self.get_token() != Token.EOI:
             raise RuntimeError(f"Unexpected token {self.text}")
 
-        #print(ast)
-
-        #ast, _ = resolve_bindings(ast, {})
-
         return ast
 
     def parse_int(self) -> int:
@@ -384,7 +380,7 @@ class Parser:
         return f"b{bindings[id]}"
 
 
-    def parse_expr(self, in_let: bool = False) -> list:
+    def parse_expr(self, bindings: dict = None, in_let: bool = False) -> list:
         """
         Parses Scheme function from string.
 
@@ -398,6 +394,9 @@ class Parser:
         Raises:
             RuntimeError: Unexpected token received.
         """
+        if not bindings:
+            bindings = {}
+
         ast = []
 
         # Consume opening parenthesis.
@@ -405,15 +404,15 @@ class Parser:
 
         match self.get_token():
             case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
-                ast = self.parse_args(num_args = 1, in_let = in_let)
+                ast = self.parse_args(num_args = 1, bindings = bindings, in_let = in_let)
             case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
-                ast = self.parse_args(num_args = 2, in_let = in_let)
+                ast = self.parse_args(num_args = 2, bindings = bindings, in_let = in_let)
             case _ if self.get_token() in [Token.IF, Token.STR_SET, Token.VEC_SET]:
-                ast = self.parse_args(num_args = 3, in_let = in_let)
+                ast = self.parse_args(num_args = 3, bindings = bindings, in_let = in_let)
             case _ if self.get_token() in [Token.VEC, Token.BEG]:
-                ast = self.parse_args(num_args = -1, in_let = in_let)
+                ast = self.parse_args(num_args = -1, bindings = bindings, in_let = in_let)
             case Token.LET:
-                ast = self.parse_let()
+                ast = self.parse_let(bindings)
             case Token.LAMBDA:
                 ast = self.parse_lambda()
             case Token.CP:
@@ -430,7 +429,7 @@ class Parser:
 
         return ast
 
-    def parse_args(self, num_args: int = -1, in_let: bool = False) -> list:
+    def parse_args(self, num_args: int = -1, bindings: dict = None, in_let: bool = False) -> list:
         """
         Parses Scheme arguments function from string.
 
@@ -445,6 +444,9 @@ class Parser:
         Raises:
             RuntimeError: Unexpected token received.
         """
+        if not bindings:
+            bindings = {}
+
         # Insert function name.
         ast = [self.text]
 
@@ -462,10 +464,9 @@ class Parser:
                 case Token.BOOL:
                     ast.append(self.parse_bool())
                 case Token.OP:
-                    ast.append(self.parse_expr(in_let = in_let))
+                    ast.append(self.parse_expr(bindings = bindings, in_let = in_let))
                 case _ if in_let and self.get_token() == Token.ID:
-                    ast.append(self.text)
-                    self.match()
+                    ast.append(self.parse_binding(bindings))
                 case _:
                     raise RuntimeError(f"Unexpected token {self.text}")
 
@@ -504,7 +505,7 @@ class Parser:
 
         return ast
 
-    def parse_let(self) -> list:
+    def parse_let(self, bindings_ind: dict = {}) -> list:
         """
         Parses let expression's bindings and expression.
 
@@ -515,6 +516,9 @@ class Parser:
         Raises:
             RuntimeError: Unexpected token received or invalid binding.
         """
+        if not bindings_ind:
+            bindings_ind = {}
+
         # Insert function name.
         ast = [self.text]
 
@@ -562,13 +566,17 @@ class Parser:
             if binding_name in bindings:
                 raise RuntimeError(f"Repeat binding name detected {binding_name}")
 
-            # Add binding to bindings set.
-            bindings[binding_name] =expr
+            # Add binding to bindings list.
+            bindings[binding_name] = expr
 
+        # Add bindings to bindings list.
         bindings_list = []
-        for binding in bindings:
-            bindings_list.append((binding, bindings[binding]))
+        num_ind = len(bindings_ind)
+        for i, binding in enumerate(bindings):
+            bindings_list.append(bindings[binding])
+            bindings_ind[binding] = i + num_ind
 
+        # Add binding expressions to ast.
         ast.append(bindings_list)
 
         # Consume closing parenthesis of bindings.
@@ -585,15 +593,11 @@ class Parser:
                 case Token.BOOL:
                     expr_list.append(self.parse_bool())
                 case Token.OP:
-                    expr_list.append(self.parse_expr(in_let = True))
+                    expr_list.append(self.parse_expr(bindings = bindings_ind, in_let = True))
                 case Token.ID:
-                    expr_list.append(self.text)
-                    self.match()
+                    expr_list.append(self.parse_binding(bindings_ind))
                 case _:
                     raise RuntimeError(f"Unexpected token {self.text}")
-
-        if len(expr_list) == 0:
-            raise RuntimeError("Missing body for let expression.")
 
         # Append expression list to AST.
         ast.append(expr_list)
@@ -670,10 +674,4 @@ def scheme_parse(source: str) -> int | bool | str | list:
     return Parser(source).parse()
 
 if __name__ == "__main__":
-    #print(scheme_parse("(let ((a 4) (b 5)) (+ a b))"))
-    #print(scheme_parse("(let ((a 5) (b (let ((c 4)) c))) (+ a b))"))
-    #print(scheme_parse("(let ((a (let ((b 4)) b))) (let ((c 5)) c))"))
-    print(scheme_parse("(let ((a 4)) (let ((a (let ((a 5)) a))) (let ((a 6)) a)))"))
-    #print(scheme_parse("(let ((a (let ((a 5)) a))) (let ((a 6)) a))"))
-    #print(scheme_parse("(let ((a 4)) (let ((b 4) (a (let ((a 5)) b))) (let ((a 6)) a)))"))
-    #print(scheme_parse("(let ((a 4)) (let ((a 5)) (let ((a 6)) a)))"))
+    print(scheme_parse("(let ((x (let ((x 1)) x)) (y (let ((y 2)) y))) x)"))

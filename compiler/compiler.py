@@ -58,13 +58,16 @@ class Compiler:
         self.code = []
         self.max_locals_count = 0
 
-    def compile(self, expr, in_let: bool = False):
+    def compile(self, expr, bindings) -> dict:
         """
         Compiles given expression into bytecode.
 
         Args:
             expr: Expression to be compiled.
             in_let (bool): Indicates whether an expression is in a let statement or not.
+
+        Raises:
+            RuntimeError: Unbound variable name.
         """
         emit = self.code.append
 
@@ -81,14 +84,16 @@ class Compiler:
                 emit(box_fixnum(expr))
             case str(s):
                 match s[0]:
-                    case "b":
-                        emit(I.GET_FROM_ENV)
-                        emit(int(s[1:]))
                     case "#":
                         emit(I.LOAD64)
                         emit(box_char(expr))
+                    case _:
+                        emit(I.GET_FROM_ENV)
+                        if s not in bindings[-1]:
+                            raise RuntimeError(f"Unbound variable {s}.")
+                        emit(bindings[-1][s][0])
             case [only]:
-                self.compile(only)
+                self.compile(only, bindings)
             case []:
                 emit(I.LOAD64)
                 emit(box_empty_list())
@@ -96,42 +101,68 @@ class Compiler:
             case [first, *rest]:
                 match first:
                     case w if w in BINARY_OPS:
-                        self.compile(rest[0])
-                        self.compile(rest[1])
+                        self.compile(rest[0], bindings)
+                        self.compile(rest[1], bindings)
                         self.emit_symbol(w)
                     case w if w in UNARY_OPS:
-                        self.compile(rest[0])
+                        self.compile(rest[0], bindings)
                         self.emit_symbol(w)
                     case w if w in TERNARY_OPS:
-                        self.compile(rest[0])
-                        self.compile(rest[1])
-                        self.compile(rest[2])
+                        self.compile(rest[0], bindings)
+                        self.compile(rest[1], bindings)
+                        self.compile(rest[2], bindings)
                         self.emit_symbol(w)
                     case w if w in ["string", "vector", "begin"]:
-                        self.compile(rest)
+                        self.compile(rest, bindings)
                         self.emit_symbol(w)
                         emit(len(rest))
                     case "if":
-                        self.compile(rest[0])
+                        self.compile(rest[0], bindings)
                         emit(I.POP_JUMP_IF_FALSE)
                         emit(get_len(rest[1]) + 2)
-                        self.compile(rest[1])
+                        self.compile(rest[1], bindings)
                         emit(I.JUMP_OVER_ELSE)
                         emit(get_len(rest[2]))
-                        self.compile(rest[2])
+                        self.compile(rest[2], bindings)
                     case "let":
-                        self.compile(rest[0])
+                        # Compile bindings.
+                        if len(bindings) == 0:
+                            bindings.append({})
+                        else:
+                            bindings.append(bindings[-1].copy())
+                        for i, binding in enumerate(rest[0]):
+                            self.compile(rest[0][i][1], bindings)
+                            if binding[0] in bindings[-1]:
+                                bindings[-1][binding[0]] = (new_val(bindings[-1]), bindings[-1][binding[0]][1] + 1)
+                            else:
+                                bindings[-1][binding[0]] = (new_val(bindings[-1]), 1)
+
                         emit(I.LET)
                         emit(len(rest[0]))
-                        self.compile(rest[1])
+                        self.compile(rest[1], bindings)
+                        bindings.pop()
                         emit(I.END_LET)
                     case "cons":
-                        self.compile(rest[1])
-                        self.compile(rest[0])
+                        self.compile(rest[1], bindings)
+                        self.compile(rest[0], bindings)
                         emit(I.CONS)
+                    case "labels":
+                        self.compile(rest[0], bindings)
+                        self.compile(rest[1], bindings)
+                    case "code":
+                        emit(rest[1][0])
+                        emit(get_len(rest[2]) + 1)
+                        self.compile(rest[2], bindings)
+                        emit(I.RET)
+                    case "labelcall":
+                        self.compile(rest[1], bindings)
+                        emit(I.LABCALL)
+                        emit(rest[0])
                     case _:
-                        self.compile(first)
-                        self.compile(rest)
+                        self.compile(first, bindings)
+                        self.compile(rest, bindings)
+
+        return bindings
 
     def compile_function(self, expr):
         """
@@ -140,7 +171,7 @@ class Compiler:
         Args:
             expr: Expression to be compiled.
         """
-        self.compile(expr)
+        self.compile(expr, [])
         self.code.append(I.RETURN)
 
     def write_to_stream(self, f: BinaryIO):
@@ -315,6 +346,15 @@ def box_empty_list() -> int:
 
     return ((0 << EMPTY_LIST_SHIFT) & ~EMPTY_LIST_MASK) | EMPTY_LIST_TAG
 
+def new_val(bindings: dict):
+    if bindings == {}:
+        return 0
+
+    tot = 0
+    for val in bindings:
+        tot += bindings[val][0]
+    return tot + 1
+
 class I(enum.IntEnum):
     """
     Class for the enumeration of all different opcodes.
@@ -357,9 +397,20 @@ class I(enum.IntEnum):
     VEC_SET = enum.auto()
     VEC_APP = enum.auto()
     BEG = enum.auto()
+    LAB = enum.auto()
+    CODE = enum.auto()
+    LABCALL = enum.auto()
+    GET_ARG =enum.auto()
+    RET = enum.auto()
+    CALL = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
-    compiler.compile_function(["let", [4], [["let", [5], [["+", "b1", "b0"]]]]])
+    #compiler.compile_function(["labels", [["l0", ["code", [], [2], ["+", "a0", "a1"]]]], ["labelcall", 0, [4, 5]]])
+    #compiler.compile_function(['let', [('a', 4)], [['let', [('a', 5)], [['let', [('a', 6)], ['a']]]]]])
+    #compiler.compile_function(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]])
+    #compiler.compile_function(["let", [("a", 4)], ['let', [('a', ['let', [('a', 4)], ['a']])], ['let', [('a', 5)], ['a']]]])
+    #compiler.compile_function(['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]])
+    compiler.compile_function(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]])
     print(compiler.code)
 

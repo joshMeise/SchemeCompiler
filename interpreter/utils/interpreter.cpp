@@ -38,6 +38,11 @@
 #define VEC_SHIFT 3
 #define VEC_MASK 7
 #define VEC_TAG 2
+#define CLOSURE_SHIFT 3
+#define CLOSURE_MASK 7
+#define CLOSURE_TAG 6
+
+#define CLOSURE_LEN 3
 
 // enumerations of opcodes.
 enum class OpCode : uint64_t {
@@ -76,20 +81,26 @@ enum class OpCode : uint64_t {
     VEC_REF = 33,
     VEC_SET = 34,
     VEC_APP = 35,
-    BEG = 36
+    BEG = 36,
+    LAB = 37,
+    CODE = 38,
+    LABCALL = 39,
+    GET_ARG = 40,
+    RET = 41,
+    CALL = 42
 };
 
 // Build insturction out of 4 bytes.
 static uint64_t word_from_bytes(std::span<uint8_t> slice) {
     uint64_t val;
     int i;
-    
+
     if (slice.size() != 8) throw std::invalid_argument("Argument must contain 8 bytes.\n");
 
     val = 0;
     for (i = 0; i < BPI; i++)
         val |= (slice[i] << i*BPB);
-    
+
     return val;
 }
 
@@ -111,9 +122,12 @@ Interpreter::Interpreter(std::vector<uint8_t>& bytes) {
         code.push_back(word);
     }
 
-    // Initialize program counter and heap pointer.
+    // Initialize "registers".
     pc = 0;
     heap_ptr = 0;
+    stack_ptr = 0;
+    base_ptr = 0;
+
 }
 
 // Interpret a program, return once it reaches a return instruction.
@@ -274,6 +288,26 @@ uint64_t Interpreter::interpret(void) {
                 // Clean up stack and place return value on top.
                 begin();
                 break;
+            case OpCode::LAB:
+                // Create an entry in the environment for the label.
+                label();
+                break;
+            case OpCode::LABCALL:
+                // Place closure object onto stack.
+                label_call();
+                break;
+            case OpCode::CALL:
+                // Call procedure.
+                call();
+                break;
+            case OpCode::RET:
+                // Clean up after function execution.
+                ret();
+                break;
+            case OpCode::GET_ARG:
+                // Get argument onto stack.
+                get_arg();
+                break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
                 break;
@@ -318,6 +352,8 @@ void Interpreter::print_val(uint64_t val, std::ostream*& output) {
         }
         *output << ")";
     }
+    else if ((val & CLOSURE_MASK) == CLOSURE_TAG)
+        *output << "function " << heap[val >> CLOSURE_SHIFT];
     else
         throw std::runtime_error("Invlaid type.\n");
 }
@@ -329,15 +365,23 @@ uint64_t Interpreter::read_word(void) {
 
 // Push value onto stack.
 void Interpreter::push(uint64_t val) {
-    stack.push_back(val);
+    // Check if stack is sufficiently large.
+    if (stack.size() > stack_ptr) stack[stack_ptr] = val;
+    else stack.push_back(val);
+    stack_ptr++;
 }
 
 // Pop value from stack.
 uint64_t Interpreter::pop(void) {
     uint64_t val;
 
-    val = stack.back();
-    stack.pop_back();
+    if (stack.size() > stack_ptr) val = stack[stack_ptr - 1];
+    else {
+        val = stack.back();
+        stack.pop_back();
+    }
+
+    stack_ptr--;
 
     return val;
 }
@@ -538,32 +582,42 @@ void Interpreter::jump_over_else(void) {
 
 // Create a new environment for the binding and load the given number of values from the stack into the environment.
 void Interpreter::let(void) {
-    uint64_t num_bindings, old_size;
+    uint64_t num_bindings;
+    std::vector<uint64_t> cur_back;
+    std::vector<uint64_t>::iterator it;
     int i;
 
-    // Get number of bindings to load.
-    num_bindings = read_word();
+    // Save current environment if one exists.
+    if (!env.empty()) cur_back = env.back();
 
-    // Fin size of environment before extension.
-    old_size = env.size();
+    // Get number of bindings to load.
+    num_bindings = read_word() + cur_back.size();
 
     // Create environment for given number of bindings.
-    env.resize(old_size + num_bindings);
+    env.push_back(std::vector<uint64_t>(num_bindings));
+
+    // First place shadowing enviroment =.
+    if (env.size() != 1) {
+        i = 0;
+        for (it = cur_back.begin(); it != cur_back.end(); ++it) env.back()[i++] = *it;
+    }
 
     // Place values from stack into environment.
-    for (i = 0; i < num_bindings; i++) env[num_bindings - i + old_size - 1] = pop();
+    for (i = 0; i < num_bindings - cur_back.size(); i++)
+        env.back()[num_bindings - i - 1] = pop();
+
 }
 
 // Get a value from the environment onto stack.
 void Interpreter::get_from_env(void) {
     // Push value from given index of environment onto stack.
-    push(env[read_word()]);
+    push(env.back()[read_word()]);
 }
 
 // Clean up binding's environment.
 void Interpreter::end_let(void) {
     // Clear environment.
-    env.clear();
+    env.pop_back();
 }
 
 // Create cons cell.
@@ -818,3 +872,97 @@ void Interpreter::begin(void) {
     push(ret_val);
 }
 
+void Interpreter::label(void) {
+    uint64_t label_id, code_len, num_args;
+
+    label_id = read_word();
+
+    // Create entry in labels envorinment mapping label to heap location.
+    labels_env.insert({label_id, heap_ptr});
+
+    // Get number of formal paramaters.
+    num_args = read_word();
+
+    // Get length of code.
+    code_len = read_word();
+
+    // Place code data onto heap.
+    heap.push_back(label_id);
+    heap.push_back(pc);
+    heap.push_back(num_args);
+
+    // Advance heap pointer.
+    heap_ptr += CLOSURE_LEN;
+
+    // Advance program counter past code.
+    pc += code_len;
+
+}
+
+void Interpreter::label_call(void) {
+    uint64_t ind, addr;
+
+    // Figure out which label is being obtained from environment.
+    ind = read_word();
+
+    // Get heap address of closure object and place tagged value onto stack.
+    addr = labels_env[ind];
+
+    push(((addr << CLOSURE_SHIFT) & ~CLOSURE_MASK) | CLOSURE_TAG);
+}
+
+void Interpreter::call(void) {
+    uint64_t closure, num_args, code_loc;
+    int64_t i;
+
+    // Pop heap location of closure object off of stack.
+    closure = pop() >> CLOSURE_SHIFT;
+
+    // Get details for closure from heap location.
+    code_loc = heap[closure + 1];
+    num_args = heap[closure + 2];
+
+    // Save return address onto stack.
+    push(pc);
+
+    // Save old location of base pointer on stack.
+    push(base_ptr);
+
+    // Move base pointer to top of stack (will point at old saved base pointer location).
+    base_ptr = stack_ptr - 1;
+
+    // Push given numebr of arguments onto stack (index off of base pointer).
+    for (i = (int64_t)num_args - 1; i >= 0; i--) push(stack[base_ptr - 2 - i]);
+
+    // Update program counter to code's location.
+    pc = code_loc;
+}
+
+void Interpreter::ret(void) {
+    uint64_t ret_val;
+
+    // Get the return value off of stack.
+    ret_val = pop();
+
+    // Restore pc to return address.
+    pc = stack[base_ptr - 1];
+
+    // Adjust stack pointer.
+    stack_ptr = base_ptr - 1;
+
+    // Restore base pointer.
+    base_ptr = stack[base_ptr];
+
+    // Push result onto stack.
+    push(ret_val);
+}
+
+void Interpreter::get_arg(void) {
+    uint64_t arg_ind;
+
+    // Get argument offset.
+    arg_ind = read_word();
+
+    // Place argument onto the top of the stack.
+    push(stack[base_ptr + 1 + arg_ind]);
+}
