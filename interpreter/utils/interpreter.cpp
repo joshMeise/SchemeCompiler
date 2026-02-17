@@ -582,10 +582,9 @@ void Interpreter::jump_over_else(void) {
 
 // Create a new environment for the binding and load the given number of values from the stack into the environment.
 void Interpreter::let(void) {
-    uint64_t num_bindings;
+    uint64_t num_bindings, i;
     std::vector<uint64_t> cur_back;
     std::vector<uint64_t>::iterator it;
-    int i;
 
     // Save current environment if one exists.
     if (!env.empty()) cur_back = env.back();
