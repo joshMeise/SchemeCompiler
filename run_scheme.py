@@ -15,6 +15,7 @@ import sys
 import subprocess
 from io import StringIO
 import os
+from compiler.compile import *
 
 ARGC = [1, 2, 3]
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +37,7 @@ if __name__ == "__main__":
     # Compile with no input (uses stdin) and interpret with no output (uses stdout).
     if len(sys.argv) == 1:
         # Open pipe between compiler and interpreter.
-        p1 = subprocess.Popen(["python3", "compiler/compile.py"], stdout = subprocess.PIPE)
+        p1 = subprocess.Popen(["python3", "-m", "compiler.compile"], stdout = subprocess.PIPE)
         stdout, _ = p1.communicate()
 
         if p1.returncode != 0:
@@ -55,7 +56,7 @@ if __name__ == "__main__":
     # Provide arguments to compiler and/or interpreter.
     elif len(sys.argv) == 3:
         # Open pipe between compiler and interpreter.
-        p1 = subprocess.Popen(["python3", "compiler/compile.py", sys.argv[1]], stdout = subprocess.PIPE)
+        p1 = subprocess.Popen(["python3", "-m", "compiler.compile", sys.argv[1]], stdout = subprocess.PIPE)
         stdout, _ = p1.communicate()
 
         if p1.returncode != 0:
@@ -74,7 +75,7 @@ if __name__ == "__main__":
     # Check which argument was provided and open respctive files.
     elif len(sys.argv[1]) > 2 and sys.argv[1][-3:] == ".txt":
         # Open pipe between compiler and interpreter.
-        p1 = subprocess.Popen(["python3", "compiler/compile.py"], stdout = subprocess.PIPE)
+        p1 = subprocess.Popen(["python3", "-m", "compiler.compile"], stdout = subprocess.PIPE)
         stdout, _ = p1.communicate()
 
         if p1.returncode != 0:
@@ -92,7 +93,7 @@ if __name__ == "__main__":
 
     elif len(sys.argv[1]) > 3 and sys.argv[1][-4:] == ".scm":
         # Open pipe between compiler and interpreter.
-        p1 = subprocess.Popen(["python3", "compiler/compile.py", sys.argv[1]], stdout = subprocess.PIPE)
+        p1 = subprocess.Popen(["python3", "-m", "compiler/.compile", sys.argv[1]], stdout = subprocess.PIPE)
         stdout, _ = p1.communicate()
 
         if p1.returncode != 0:

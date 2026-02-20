@@ -9,8 +9,9 @@ import sys
 import os
 from io import StringIO
 from typing import BinaryIO
-from compiler import Compiler
-from parser import *
+from .compiler import Compiler
+from .parser import *
+from .utils import *
 
 ARGC = [1, 2, 3]
 
