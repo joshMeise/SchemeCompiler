@@ -32,7 +32,6 @@ private:
     // Member variables.
     std::vector<uint64_t> code;
     std::vector<uint64_t> stack;
-    std::vector<std::vector<uint64_t>> env;
     std::unordered_map<uint64_t, uint64_t> labels_env;
     std::vector<uint64_t> heap;
     uint64_t pc;
@@ -106,13 +105,10 @@ private:
     // Move past alternate if test was not satisfied.
     void jump_over_else(void);
 
-    // Create a new environment for the binding and load the given number of values from the stack into the environment.
-    void let(void);
+    // Get a value from the environment mapping onto top of stack.
+    void push_let(void);
 
-    // Get a value from the environment onto stack.
-    void get_from_env(void);
-
-    // Clean up binding's environment.
+    // Clean up binding's stack variables.
     void end_let(void);
 
     // Create cons cell.
@@ -153,7 +149,7 @@ private:
 
     void label(void);
 
-    void label_call(void);
+    void closure(void);
 
     void call(void);
 

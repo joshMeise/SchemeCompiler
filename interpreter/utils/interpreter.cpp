@@ -67,27 +67,26 @@ enum class OpCode : uint64_t {
     EQ = 19,
     POP_JUMP_IF_FALSE = 20,
     JUMP_OVER_ELSE = 21,
-    LET = 22,
-    GET_FROM_ENV = 23,
-    END_LET = 24,
-    CONS = 25,
-    CAR = 26,
-    CDR = 27,
-    STR = 28,
-    STR_REF = 29,
-    STR_SET = 30,
-    STR_APP = 31,
-    VEC = 32,
-    VEC_REF = 33,
-    VEC_SET = 34,
-    VEC_APP = 35,
-    BEG = 36,
-    LAB = 37,
-    CODE = 38,
-    LABCALL = 39,
-    GET_ARG = 40,
-    RET = 41,
-    CALL = 42
+    PUSH_LET = 22,
+    END_LET = 23,
+    CONS = 24,
+    CAR = 25,
+    CDR = 26,
+    STR = 27,
+    STR_REF = 28,
+    STR_SET = 29,
+    STR_APP = 30,
+    VEC = 31,
+    VEC_REF = 32,
+    VEC_SET = 33,
+    VEC_APP = 34,
+    BEG = 35,
+    LABEL = 36,
+    CODE = 37,
+    CLOSURE = 38,
+    GET_ARG = 39,
+    RET = 40,
+    CALL = 41
 };
 
 // Build insturction out of 4 bytes.
@@ -228,13 +227,9 @@ uint64_t Interpreter::interpret(void) {
                 // Jump over alternate if condition was satisfied.
                 jump_over_else();
                 break;
-            case OpCode::LET:
-                // Load the given number of values from stack into environment.
-                let();
-                break;
-            case OpCode::GET_FROM_ENV:
+            case OpCode::PUSH_LET:
                 // Load given value from stack into environment.
-                get_from_env();
+                push_let();
                 break;
             case OpCode::END_LET:
                 // Clean up environment associated with binding.
@@ -288,13 +283,13 @@ uint64_t Interpreter::interpret(void) {
                 // Clean up stack and place return value on top.
                 begin();
                 break;
-            case OpCode::LAB:
+            case OpCode::LABEL:
                 // Create an entry in the environment for the label.
                 label();
                 break;
-            case OpCode::LABCALL:
+            case OpCode::CLOSURE:
                 // Place closure object onto stack.
-                label_call();
+                closure();
                 break;
             case OpCode::CALL:
                 // Call procedure.
@@ -580,43 +575,25 @@ void Interpreter::jump_over_else(void) {
     pc += read_word();
 }
 
-// Create a new environment for the binding and load the given number of values from the stack into the environment.
-void Interpreter::let(void) {
-    uint64_t num_bindings, i;
-    std::vector<uint64_t> cur_back;
-    std::vector<uint64_t>::iterator it;
-
-    // Save current environment if one exists.
-    if (!env.empty()) cur_back = env.back();
-
-    // Get number of bindings to load.
-    num_bindings = read_word() + cur_back.size();
-
-    // Create environment for given number of bindings.
-    env.push_back(std::vector<uint64_t>(num_bindings));
-
-    // First place shadowing enviroment =.
-    if (env.size() != 1) {
-        i = 0;
-        for (it = cur_back.begin(); it != cur_back.end(); ++it) env.back()[i++] = *it;
-    }
-
-    // Place values from stack into environment.
-    for (i = 0; i < num_bindings - cur_back.size(); i++)
-        env.back()[num_bindings - i - 1] = pop();
-
-}
-
-// Get a value from the environment onto stack.
-void Interpreter::get_from_env(void) {
+// Get a value from the environment mapping onto top of stack.
+void Interpreter::push_let(void) {
     // Push value from given index of environment onto stack.
-    push(env.back()[read_word()]);
+    push(stack[stack_ptr - read_word()]);
 }
 
-// Clean up binding's environment.
+// Clean up binding's stack variables.
 void Interpreter::end_let(void) {
-    // Clear environment.
-    env.pop_back();
+    uint64_t num_to_pop, i, val;
+
+    // Number of bindings to clear off stack.
+    num_to_pop = read_word();
+
+    // Save value to keep on top of stack.
+    val = pop();
+
+    for (i = 0; i < num_to_pop; i++) pop();
+
+    push(val);
 }
 
 // Create cons cell.
@@ -898,7 +875,7 @@ void Interpreter::label(void) {
 
 }
 
-void Interpreter::label_call(void) {
+void Interpreter::closure(void) {
     uint64_t ind, addr;
 
     // Figure out which label is being obtained from environment.

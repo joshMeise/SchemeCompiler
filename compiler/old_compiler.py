@@ -10,7 +10,7 @@
 
 import enum
 from typing import BinaryIO
-from .utils import *
+from utils import *
 
 FIXNUM_SHIFT = 2
 FIXNUM_TAG = 0
@@ -58,7 +58,6 @@ class Compiler:
         """
         self.code = []
         self.max_locals_count = 0
-        self.stack_ind = 0
 
     def compile(self, expr, bindings: list, labels: dict, frees, bounds):
         """
@@ -76,15 +75,12 @@ class Compiler:
         match expr:
             # Handle the case of the empty vector constructor.
             case ["vector"]:
-                self.stack_ind += 1
                 emit(I.VEC)
                 emit(0)
             case bool(_):
-                self.stack_ind += 1
                 emit(I.LOAD64)
                 emit(box_bool(expr))
             case int(_):
-                self.stack_ind += 1
                 emit(I.LOAD64)
                 emit(box_fixnum(expr))
             case s if type(expr) is Free:
@@ -96,20 +92,19 @@ class Compiler:
             case str(s):
                 match s[0]:
                     case "#":
-                        self.stack_ind += 1
                         emit(I.LOAD64)
                         emit(box_char(expr))
                     case _:
-                        self.stack_ind += 1
-                        emit(I.PUSH_LET)
+                        # Check if a valid identifier.
+                        emit(I.GET_FROM_ENV)
                         if s not in bindings[-1]:
                             raise RuntimeError(f"Unbound variable {s}.")
-                        emit(self.stack_ind - 1 - bindings[-1][s][0])
+                        emit(bindings[-1][s][0])
             case [only]:
+                print(only)
                 self.compile(only, bindings, labels, frees, bounds)
                 emit(I.APPLY)
             case []:
-                self.stack_ind += 1
                 emit(I.LOAD64)
                 emit(box_empty_list())
             # Compilation of an expression.
@@ -119,7 +114,6 @@ class Compiler:
                         self.compile(rest[0], bindings, labels, frees, bounds)
                         self.compile(rest[1], bindings, labels, frees, bounds)
                         self.emit_symbol(w)
-                        self.stack_ind -= 1
                     case w if w in UNARY_OPS:
                         self.compile(rest[0], bindings, labels, frees, bounds)
                         self.emit_symbol(w)
@@ -128,15 +122,11 @@ class Compiler:
                         self.compile(rest[1], bindings, labels, frees, bounds)
                         self.compile(rest[2], bindings, labels, frees, bounds)
                         self.emit_symbol(w)
-                        self.stack_ind -= 2
                     case w if w in ["string", "vector", "begin"]:
-                        cnt = 0
                         for element in rest:
                             self.compile(element, bindings, labels, frees, bounds)
-                            cnt += 1
                         self.emit_symbol(w)
                         emit(len(rest))
-                        self.stack_ind -= (cnt - 1)
                     case "if":
                         self.compile(rest[0], bindings, labels, frees, bounds)
                         emit(I.POP_JUMP_IF_FALSE)
@@ -154,20 +144,19 @@ class Compiler:
                         for i, binding in enumerate(rest[0]):
                             self.compile(rest[0][i][1], bindings[0:-1], labels, frees, bounds)
                             if binding[0] in bindings[-1]:
-                                bindings[-1][binding[0]] = (self.stack_ind - 1, bindings[-1][binding[0]][1] + 1)
+                                bindings[-1][binding[0]] = (new_val(bindings[-1]), bindings[-1][binding[0]][1] + 1)
                             else:
-                                bindings[-1][binding[0]] = (self.stack_ind - 1, 1)
+                                bindings[-1][binding[0]] = (new_val(bindings[-1]), 1)
 
+                        emit(I.LET)
+                        emit(len(rest[0]))
                         self.compile(rest[1], bindings, labels, frees, bounds)
                         bindings.pop()
                         emit(I.END_LET)
-                        emit(len(rest[0]))
-                        self.stack_ind -= len(rest[0])
                     case "cons":
                         self.compile(rest[1], bindings, labels, frees, bounds)
                         self.compile(rest[0], bindings, labels, frees, bounds)
                         emit(I.CONS)
-                        self.stack_ind -= 1
                     case "labels":
                         for element in rest[0]:
                             num = get_new_label_num(labels)
@@ -374,6 +363,24 @@ def box_empty_list() -> int:
 
     return ((0 << EMPTY_LIST_SHIFT) & ~EMPTY_LIST_MASK) | EMPTY_LIST_TAG
 
+def new_val(bindings: dict) -> int:
+    """
+    Gets runtime index for new binding from environment.
+
+    Args:
+        bindings (dict): Map of binding names to runtime index.
+
+    Returns:
+        int: Runtime index for new binding.
+    """
+    if bindings == {}:
+        return 0
+
+    tot = 0
+    for val in bindings:
+        tot += bindings[val][0]
+    return tot + 1
+
 def get_new_label_num(labels: dict) -> int:
     if labels == {}:
         return 0
@@ -392,58 +399,56 @@ class I(enum.IntEnum):
 
     Starts at 1 and increments.
     """
-    LOAD64 = enum.auto()            # 0x01
-    RETURN = enum.auto()            # 0x02
-    ADD1 = enum.auto()              # 0x03
-    SUB1 = enum.auto()              # 0x04
-    INT_TO_CHAR = enum.auto()       # 0x05
-    CHAR_TO_INT = enum.auto()       # 0x06
-    IS_NULL = enum.auto()           # 0x07
-    IS_ZERO = enum.auto()           # 0x08
-    NOT = enum.auto()               # 0x09
-    IS_INT = enum.auto()            # 0x0A
-    IS_BOOL = enum.auto()           # 0x0B
-    PLUS = enum.auto()              # 0x0C
-    TIMES = enum.auto()             # 0x0D
-    MINUS = enum.auto()             # 0x0E
-    LT = enum.auto()                # 0x0F
-    GT = enum.auto()                # 0x10
-    LEQ = enum.auto()               # 0x11
-    GEQ = enum.auto()               # 0x12
-    EQ = enum.auto()                # 0x13
-    POP_JUMP_IF_FALSE = enum.auto() # 0x14
-    JUMP_OVER_ELSE = enum.auto()    # 0x15
-    PUSH_LET = enum.auto()          # 0x16
-    END_LET = enum.auto()           # 0x17
-    CONS = enum.auto()              # 0x18
-    CAR = enum.auto()               # 0x19
-    CDR = enum.auto()               # 0x1A
-    STR = enum.auto()               # 0x1B
-    STR_REF = enum.auto()           # 0x1C
-    STR_SET = enum.auto()           # 0x1D
-    STR_APP = enum.auto()           # 0x1E
-    VEC = enum.auto()               # 0x1F
-    VEC_REF = enum.auto()           # 0x20
-    VEC_SET = enum.auto()           # 0x21
-    VEC_APP = enum.auto()           # 0x22
-    BEG = enum.auto()               # 0x23
-    LABEL = enum.auto()             # 0x24
-    CODE = enum.auto()              # 0x25
-    CLOSURE = enum.auto()           # 0x26
-    GET_ARG = enum.auto()           # 0x27
-    RET = enum.auto()               # 0x28
-    APPLY = enum.auto()             # 0x29
-    GET_FREE = enum.auto()          # 0x2A
+    LOAD64 = enum.auto()
+    RETURN = enum.auto()
+    ADD1 = enum.auto()
+    SUB1 = enum.auto()
+    INT_TO_CHAR = enum.auto()
+    CHAR_TO_INT = enum.auto()
+    IS_NULL = enum.auto()
+    IS_ZERO = enum.auto()
+    NOT = enum.auto()
+    IS_INT = enum.auto()
+    IS_BOOL = enum.auto()
+    PLUS = enum.auto()
+    TIMES = enum.auto()
+    MINUS = enum.auto()
+    LT = enum.auto()
+    GT = enum.auto()
+    LEQ = enum.auto()
+    GEQ = enum.auto()
+    EQ = enum.auto()
+    POP_JUMP_IF_FALSE = enum.auto()
+    JUMP_OVER_ELSE = enum.auto()
+    LET = enum.auto()
+    PUSH_LET = enum.auto()
+    END_LET = enum.auto()
+    CONS = enum.auto()
+    CAR = enum.auto()
+    CDR = enum.auto()
+    STR = enum.auto()
+    STR_REF = enum.auto()
+    STR_SET = enum.auto()
+    STR_APP = enum.auto()
+    VEC = enum.auto()
+    VEC_REF = enum.auto()
+    VEC_SET = enum.auto()
+    VEC_APP = enum.auto()
+    BEG = enum.auto()
+    LABEL = enum.auto()
+    CODE = enum.auto()
+    CLOSURE = enum.auto()
+    GET_ARG = enum.auto()
+    RET = enum.auto()
+    APPLY = enum.auto()
+    GET_FREE = enum.auto()
 
 if __name__ == "__main__":
     compiler = Compiler()
     #compiler.compile_function(["labels", [["l0", ["code", [], [2], ["+", "a0", "a1"]]]], ["labelcall", 0, [4, 5]]])
     #compiler.compile_function(['let', [('a', 4)], [['let', [('a', 5)], [['let', [('a', 6)], ['a']]]]]])
     #compiler.compile_function(['let', [('a', 4)], [['let', [('a', 5)], [['let', [('a', 6)], ['a']]]]]])
-    #compiler.compile_function(['let', [('a', ['let', [('a', 4)], 'a'])], 'a'])
-    #compiler.compile_function(['let', [('a', 2), ('b', 3), ('c', 4), ('d', 5)], ['+', ['let', [('y', 6)], 'y'], ['+', ['let', [('y', 7)], 'y'],'b']]])
-    #compiler.compile_function(['let', [('a', 4), ('b', 5)], ['+', 'a', 'b']])
-    compiler.compile_function(['let', [('a', 5)], ['let', [('b', 4)], ['-', 'a', 'b']]])
+    compiler.compile_function(['let', [('a', ['let', [('a', 4)], 'a'])], 'a'])
     #compiler.compile_function(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]])
     #compiler.compile_function(["let", [("a", 4)], ['let', [('a', ['let', [('a', 4)], ['a']])], ['let', [('a', 5)], ['a']]]])
     #compiler.compile_function(['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]])

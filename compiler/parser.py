@@ -7,12 +7,17 @@
 # Citations:
 # - GeminiAI for re.DOTALL to get string to include newline.
 #
+# Uncertaities:
+# Closure object is in double parens. IDK if this should be the case but I'm riding with it.
+#
 
 import enum
 import re
 from collections import OrderedDict
+from .utils import *
 
 WSP = ['\n', '\r', '\t', ' ']
+BUILTINS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "+", "-", "*", "<", ">", "<=", ">=", "=", "let", "if", "cons", "car", "cdr", "string-ref", "string-set!", "string-append", "string", "vector-ref", "vector-set!", "vector-append", "vector", "begin", "lambda", ]
 
 class Token(enum.IntEnum):
     """
@@ -302,9 +307,7 @@ class Parser:
         if self.get_token() != Token.EOI:
             raise RuntimeError(f"Unexpected token {self.text}")
 
-        #print(ast)
-
-        #ast, _ = resolve_bindings(ast, {})
+        ast = convert_to_closure(ast)
 
         return ast
 
@@ -356,34 +359,6 @@ class Parser:
 
         return val
 
-    def parse_binding(self, bindings: dict) -> str:
-        """
-        Parses binding from identifier.
-
-        Args:
-            bindings (dict): Map of identifers to indices in environment.
-
-        Returns:
-            str: 'b' concatenated with the binding index.
-
-        Raises:
-            RuntimeError: Identifier not in bindings list.
-        """
-        # Get identifier.
-        self.get_identifier()
-        id = self.text
-
-        # Ensure identifier in bindings.
-        if not id in bindings:
-            raise RuntimeError(f"Unbound identifier {self.text}.")
-
-        # Consume binding text.
-        self.match()
-
-        # Return binding index.
-        return f"b{bindings[id]}"
-
-
     def parse_expr(self, in_let: bool = False) -> list:
         """
         Parses Scheme function from string.
@@ -420,6 +395,15 @@ class Parser:
                 ast = []
             case Token.STR:
                 ast = self.parse_string()
+            case Token.OP:
+                ast = self.parse_expr()
+                ret = self.parse_args(num_args = -1, in_let = in_let, function_name = False)
+                ast = [ast] + ret
+            case _ if in_let and self.get_token() == Token.ID:
+                    ast = (self.text)
+                    self.match()
+                    ret = self.parse_args(num_args = -1, in_let = in_let, function_name = False)
+                    ast = [ast] +ret
             case _:
                 raise RuntimeError(f"Unexpected token {self.text}")
 
@@ -430,7 +414,7 @@ class Parser:
 
         return ast
 
-    def parse_args(self, num_args: int = -1, in_let: bool = False) -> list:
+    def parse_args(self, num_args: int = -1, in_let: bool = False, function_name: bool = True) -> list:
         """
         Parses Scheme arguments function from string.
 
@@ -446,10 +430,11 @@ class Parser:
             RuntimeError: Unexpected token received.
         """
         # Insert function name.
-        ast = [self.text]
-
-        # Consume function name.
-        self.match()
+        if function_name:
+            ast = [self.text]
+            self.match()
+        else:
+            ast = []
 
         # Parse arguments.
         n = 0
@@ -596,7 +581,7 @@ class Parser:
             raise RuntimeError("Missing body for let expression.")
 
         # Append expression list to AST.
-        ast.append(expr_list)
+        ast += expr_list
 
         return ast
 
@@ -604,7 +589,7 @@ class Parser:
         """
         Parses lambda expression from string.
         Form is (lambda (vars) body).
-        Output is in closure form: (labels ((lvar (code (free_vars) (args) expr)) ...) (closure lvar args))
+        Output is in annotated lambda form: (lambda (bound_vars) (free_vars) expr)
 
         Returns:
             list: String's AST.
@@ -621,44 +606,133 @@ class Parser:
             raise RuntimeError(f"Unexpected token {self.text}")
         self.match()
 
-#        # Map lvars to LExprs.
-#        lvars = OrderedDict()
-#
-#        # Parse lvars.
-#        while t := self.get_token() != Token.CP:
-#            # Consume lvar's opening parenthesis.
-#            if t != Token.OP:
-#                raise RuntimeError("Unexpected token {self.text}")
-#            self.match()
-#
-#            # Get identifier.
-#            self.get_identifier()
-#            lvar = self.text
-#            self.match()
-#            print(lvar)
-#
-#            lexpr = self.parse_lexpr()
-#
-#            # Consume closing parenthesis of lvar.
-#            if self.get_token() != Token.CP:
-#                raise RuntimeError(f"Unexpected token {self.text}")
-#            self.match()
-#
-#            # Ensure lvar name is unique.
-#            if lvar in lvars:
-#                raise RuntimeError(f"Repeat lvar detected {lvar}")
-#
-#            # Add binding to bindings list.
-#            lvars[lvar] = lexpr
-#
-#        print(lvars)
-#
+        bound_vars = []
+
+        # Extract the names of the bound variables.
+        while t := self.get_token() != Token.CP:
+            # Get identifier.
+            self.get_identifier()
+            var = self.text
+            self.match()
+
+            if var in bound_vars:
+                raise RuntimeError(f"Repeat bound variable detected {var}")
+
+            bound_vars.append(var)
+
         # Consume closing parenthesis.
         if self.get_token() != Token.CP:
             raise RuntimeError(f"Unexpected token {self.text}")
         self.match()
 
+        # Parse body.
+        expr_list = []
+        while self.get_token() != Token.CP:
+            match self.get_token():
+                case Token.INT:
+                    expr_list.append(self.parse_int())
+                case Token.CHAR:
+                    expr_list.append(self.parse_char())
+                case Token.BOOL:
+                    expr_list.append(self.parse_bool())
+                case Token.OP:
+                    expr_list.append(self.parse_expr(in_let = True))
+                case Token.ID:
+                    expr_list.append(self.text)
+                    self.match()
+                case _:
+                    raise RuntimeError(f"Unexpected token {self.text}")
+
+        expr_list = expr_list[0]
+
+        # Lift free variables from expression.
+        free_vars = get_free_vars(bound_vars, expr_list)
+
+        # Annotate free variables in expression list.
+        expr_list = annotate_free_vars(free_vars, expr_list)
+
+        ast.append(bound_vars)
+        ast.append(free_vars)
+        ast.append(expr_list)
+
         return ast
+
+def get_closure_form(lambda_body, cur_count):
+    return ["closure", f"f{cur_count}"] + lambda_body
+
+def convert_to_closure_helper(ast: list, labels, cur_count, new_ast = []) -> list:
+    match ast:
+        case [only]:
+            return [convert_to_closure_helper(only, labels, cur_count, new_ast)]
+        case [first, *rest]:
+            if first == "lambda":
+                labels[f"f{cur_count}"] = [rest[0], rest[1], convert_to_closure_helper(rest[2], labels, cur_count + 1)]
+                return get_closure_form(rest[1], cur_count)
+            elif first == "let":
+                ret_val = [first]
+                bindings = []
+                for element in rest[0]:
+                    bindings.append((element[0], convert_to_closure_helper(element[1], labels, cur_count, new_ast)))
+                    cur_count += 1
+                ret_val.append(bindings)
+                ret_val.append(convert_to_closure_helper(rest[1], labels, cur_count, new_ast))
+                return ret_val
+            else:
+                ret_val = [convert_to_closure_helper(first, labels, cur_count, new_ast)]
+                ret_val += convert_to_closure_helper(rest, labels, cur_count, new_ast)
+                return ret_val
+        case int(_):
+            return ast
+        case str(_):
+            return ast
+        case []:
+            return ast
+        case _ if type(ast) is Free:
+            return ast
+        case _:
+            raise NotImplementedError("Not yet implemented")
+
+def convert_to_closure(ast: list) -> list:
+    labels = {}
+    body = []
+
+    body.append(convert_to_closure_helper(ast, labels, 0))
+
+    if len(labels) != 0:
+        labels = [(name, ["code"] + code) for name, code in labels.items()]
+        return ["labels", labels] + body
+    else:
+        return ast
+
+def get_free_vars_helper(bound_vars, expr, free_vars):
+    match expr:
+        case str(_) if expr not in bound_vars and expr not in BUILTINS and expr[0] != '#':
+            free_vars.append(expr)
+        case [only]:
+            get_free_vars_helper(bound_vars, only, free_vars)
+        case [first, *rest]:
+            get_free_vars_helper(bound_vars, first, free_vars)
+            get_free_vars_helper(bound_vars, rest, free_vars)
+
+def get_free_vars(bound_vars, expr):
+    free_vars = []
+
+    get_free_vars_helper(bound_vars, expr, free_vars)
+
+    # Remove duplicates.
+    free_vars_dict = dict.fromkeys(free_vars, None)
+    free_vars = [var for var in free_vars_dict]
+
+    return free_vars
+
+def annotate_free_vars(free_vars, expr):
+    match expr:
+        case _ if type(expr) is str and expr in free_vars:
+            return Free(expr)
+        case [first, *rest]:
+            return [annotate_free_vars(free_vars, first), *[annotate_free_vars(free_vars, r) for r in rest]]
+        case _:
+            return expr
 
 def scheme_parse(source: str) -> int | bool | str | list:
     """
@@ -673,7 +747,26 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((a 4) (b 5)) (+ a b))"))
     #print(scheme_parse("(let ((a 5) (b (let ((c 4)) c))) (+ a b))"))
     #print(scheme_parse("(let ((a (let ((b 4)) b))) (let ((c 5)) c))"))
-    print(scheme_parse("(let ((a 4)) (let ((a (let ((a 5)) a))) (let ((a 6)) a)))"))
+    #print(scheme_parse("(let ((a 4)) (let ((a (let ((a 5)) a))) (let ((a 6)) a)))"))
     #print(scheme_parse("(let ((a (let ((a 5)) a))) (let ((a 6)) a))"))
     #print(scheme_parse("(let ((a 4)) (let ((b 4) (a (let ((a 5)) b))) (let ((a 6)) a)))"))
     #print(scheme_parse("(let ((a 4)) (let ((a 5)) (let ((a 6)) a)))"))
+    #print(scheme_parse("(lambda (x y) (lambda () (+ x y)))"))
+    #print(scheme_parse("(let ((x 5)) (lambda (y) (lambda () (+ x y))))"))
+    #print(scheme_parse("(lambda () (+ x y))"))
+    #print(scheme_parse("(lambda (x) (+ x y))"))
+    #print(scheme_parse("(lambda (x y) (+ x y))"))
+    #print(scheme_parse("((lambda (x) (+ x y)) (+ 4 5))"))
+    #print(scheme_parse("(let ((a (let ((a 4)) a))) a)"))
+    print(scheme_parse("(let ((x 2) (y 3)) (+ (let ((y 4)) y) y))"))
+    #print(scheme_parse("((let ((x 3) (y 4)) (lambda () (+ x y))))"))
+    #print(scheme_parse("(+ 4 5)"))
+    #print(scheme_parse("((+ 4 5))"))
+    #print(scheme_parse("(let ((x 4) (y 5)) (lambda () (+ x y)))"))
+    #print(scheme_parse("(let ((x 4)) (+ x 4))"))
+    #print(scheme_parse("(lambda (y) (+ x y))"))
+    #print(scheme_parse("((lambda () 3))"))
+    #print(scheme_parse("(+ ((lambda () 3)) 4)"))
+    #print(scheme_parse("(let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))"))
+    #print(scheme_parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"))
+    #print(scheme_parse("(let ((x 3)) (lambda (y) y))"))
