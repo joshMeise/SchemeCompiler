@@ -93,6 +93,10 @@ class Compiler:
             case s if type(expr) is Bound:
                 emit(I.GET_ARG)
                 emit(bounds.index(s.get_name()))
+            case s if type(expr) is Local:
+                self.stack_ind += 1
+                emit(I.PUSH_LET)
+                emit(self.stack_ind - 1 - bindings[-1][s.get_name()][0])
             case str(s):
                 match s[0]:
                     case "#":
@@ -100,11 +104,7 @@ class Compiler:
                         emit(I.LOAD64)
                         emit(box_char(expr))
                     case _:
-                        self.stack_ind += 1
-                        emit(I.PUSH_LET)
-                        if s not in bindings[-1]:
-                            raise RuntimeError(f"Unbound variable {s}.")
-                        emit(self.stack_ind - 1 - bindings[-1][s][0])
+                        raise RuntimeError(f"Unknown string {s}.")
             case [only]:
                 self.compile(only, bindings, labels, frees, bounds)
                 emit(I.APPLY)
