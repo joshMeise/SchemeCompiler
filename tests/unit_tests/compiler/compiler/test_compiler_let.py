@@ -99,7 +99,7 @@ class LetCompileTests(unittest.TestCase):
         Test (let ((a 4)) (let ((a (let ((a 5)) b))) (let ((a 6)) a)))
         """
         with self.assertRaises(RuntimeError):
-            self._compile(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], 'b'])], ['let', [('a', 6)], Local('a')]]]])
+            self._compile(['let', [('a', 4)], ['let', [('a', ['let', [('a', 5)], 'b'])], ['let', [('a', 6)], Local('a')]]])
 
     def test_let_unbound_2(self):
         """

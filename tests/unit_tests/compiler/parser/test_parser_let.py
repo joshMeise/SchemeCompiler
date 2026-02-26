@@ -132,5 +132,18 @@ class LetParseTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self._parse("(let ((a 4)))")
 
+    def test_unbound_1(self):
+        """
+        Test (let ((a 4)) (let ((a (let ((a 5)) b))) (let ((a 6)) a)))
+        """
+        self.assertEqual(self._parse("(let ((a 4)) (let ((a (let ((a 5)) b))) (let ((a 6)) a)))"), ['let', [('a', 4)], ['let', [('a', ['let', [('a', 5)], 'b'])], ['let', [('a', 6)], Local('a')]]])
+
+    def test_unbound_2(self):
+        """
+        Test (let ((a 4)) (let ((b 4) (a (let ((a 5)) b))) (let ((a 6)) a)))
+        """
+        self.assertEqual(self._parse("(let ((a 4)) (let ((b 4) (a (let ((a 5)) b))) (let ((a 6)) a)))"), ['let', [('a', 4)], ['let', [('b', 4), ('a', ['let', [('a', 5)], 'b'])], ['let', [('a', 6)], Local('a')]]])
+
+
 if __name__ == '__main__':
     unittest.main()
