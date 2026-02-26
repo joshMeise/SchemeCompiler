@@ -443,7 +443,8 @@ if __name__ == "__main__":
     #compiler.compile_function(['let', [('a', ['let', [('a', 4)], 'a'])], 'a'])
     #compiler.compile_function(['let', [('a', 2), ('b', 3), ('c', 4), ('d', 5)], ['+', ['let', [('y', 6)], 'y'], ['+', ['let', [('y', 7)], 'y'],'b']]])
     #compiler.compile_function(['let', [('a', 4), ('b', 5)], ['+', 'a', 'b']])
-    compiler.compile_function(['let', [('a', 5)], ['let', [('b', 4)], ['-', 'a', 'b']]])
+    #compiler.compile_function(['let', [('a', 5)], ['let', [('b', 4)], ['-', 'a', 'b']]])
+    #compiler.compile_function(['let', [('a', 4)], ['let', [('b', 4), ('a', ['let', [('a', 5)], 'b'])], ['let', [('a', 6)], 'a']]])
     #compiler.compile_function(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]])
     #compiler.compile_function(["let", [("a", 4)], ['let', [('a', ['let', [('a', 4)], ['a']])], ['let', [('a', 5)], ['a']]]])
     #compiler.compile_function(['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]])
@@ -453,6 +454,6 @@ if __name__ == "__main__":
     #compiler.compile_function(['begin', ['+', 4, 3]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", "x", "y"]])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", [], [], 3])], ["closure", "f0", "x", "y"]])
-    #compiler.compile_function(['labels', [('f2', ['code', [], ['x', 'y'], ['+', Free("x"), Free("y")]])], [['let', [('x', 3), ('y', 4)], ['closure', 'f2', 'x', 'y']]]])
+    compiler.compile_function(['labels', [('f1', ['code', ['y'], ['x'], ['+', Free('x'), Bound('y')]])], [['let', [('x', 2)], ['closure', 'f1', 'x']], 4]])
     print(compiler.code)
 

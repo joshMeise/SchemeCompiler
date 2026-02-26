@@ -32,13 +32,13 @@ class LambdaParseTests(unittest.TestCase):
         """
         Test (lambda (x) x).
         """
-        self.assertEqual(self._parse("(lambda (x) x)"), ["labels", [("f0", ["code", ["x"], [], "x"])], ["closure", "f0"]])
+        self.assertEqual(self._parse("(lambda (x) x)"), ["labels", [("f0", ["code", ["x"], [], Bound("x")])], ["closure", "f0"]])
 
     def test_lambda_one_bound_one_free(self):
         """
         Test (lambda (y) (+ x y)).
         """
-        self.assertEqual(self._parse("(lambda (y) (+ x y))"), ["labels", [("f0", ["code", ["y"], ["x"], ["+", Free("x"), "y"]])], ["closure", "f0", "x"]])
+        self.assertEqual(self._parse("(lambda (y) (+ x y))"), ["labels", [("f0", ["code", ["y"], ["x"], ["+", Free("x"), Bound("y")]])], ["closure", "f0", "x"]])
 
     def test_lambda_one_free(self):
         """
@@ -56,7 +56,7 @@ class LambdaParseTests(unittest.TestCase):
         """
         Test (let ((x 3)) (lambda (y) y)).
         """
-        self.assertEqual(self._parse("(let ((x 3)) (lambda (y) y))"), ["labels", [("f1", ["code", ["y"], [], "y"])], ["let", [("x", 3)], ["closure", "f1"]]])
+        self.assertEqual(self._parse("(let ((x 3)) (lambda (y) y))"), ["labels", [("f1", ["code", ["y"], [], Bound("y")])], ["let", [("x", 3)], ["closure", "f1"]]])
 
     def test_lambda_called_no_arg(self):
         """
@@ -68,13 +68,13 @@ class LambdaParseTests(unittest.TestCase):
         """
         Test ((lambda (x) (+ x 3)) 4).
         """
-        self.assertEqual(self._parse("((lambda (x) (+ x 3)) 4)"), ["labels", [("f0", ["code", ["x"], [], ["+", "x", 3]])], [["closure", "f0"], 4]])
+        self.assertEqual(self._parse("((lambda (x) (+ x 3)) 4)"), ["labels", [("f0", ["code", ["x"], [], ["+", Bound("x"), 3]])], [["closure", "f0"], 4]])
 
     def test_lambda_two_bindings(self):
         """
         Test (let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b)).
         """
-        self.assertEqual(self._parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"), ["labels", [("f0", ["code", [], [], 4]), ("f1", ["code", [], [], 3])], ['let', [('a', [['closure', 'f0']]), ('b', [['closure', 'f1']])], ['+', 'a', 'b']]])
+        self.assertEqual(self._parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"), ["labels", [("f0", ["code", [], [], 4]), ("f1", ["code", [], [], 3])], ['let', [('a', [['closure', 'f0']]), ('b', [['closure', 'f1']])], ['+', Local('a'), Local('b')]]])
 
 if __name__ == '__main__':
     unittest.main()

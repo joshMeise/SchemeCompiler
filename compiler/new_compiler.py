@@ -59,8 +59,9 @@ class Compiler:
         self.code = []
         self.max_locals_count = 0
         self.stack_ind = 0
+        self.bindings = []
 
-    def compile(self, expr, bindings: list, labels: dict, frees, bounds):
+    def compile(self, expr, labels: dict, frees, bounds):
         """
         Compiles given expression into bytecode.
 
@@ -101,13 +102,13 @@ class Compiler:
                         emit(box_char(expr))
                     case _:
                         self.stack_ind += 1
-                        print(bindings)
                         emit(I.PUSH_LET)
-                        if s not in bindings[-1]:
+                        print(self.bindings)
+                        if s not in self.bindings[-1]:
                             raise RuntimeError(f"Unbound variable {s}.")
-                        emit(self.stack_ind - 1 - bindings[-1][s][0])
+                        emit(self.stack_ind - 1 - self.bindings[-1][s])
             case [only]:
-                self.compile(only, bindings, labels, frees, bounds)
+                self.compile(only, labels, frees, bounds)
                 emit(I.APPLY)
             case []:
                 self.stack_ind += 1
@@ -117,57 +118,61 @@ class Compiler:
             case [first, *rest]:
                 match first:
                     case w if w in BINARY_OPS:
-                        self.compile(rest[0], bindings, labels, frees, bounds)
-                        self.compile(rest[1], bindings, labels, frees, bounds)
+                        self.compile(rest[0], labels, frees, bounds)
+                        self.compile(rest[1], labels, frees, bounds)
                         self.emit_symbol(w)
                         self.stack_ind -= 1
                     case w if w in UNARY_OPS:
-                        self.compile(rest[0], bindings, labels, frees, bounds)
+                        self.compile(rest[0], labels, frees, bounds)
                         self.emit_symbol(w)
                     case w if w in TERNARY_OPS:
-                        self.compile(rest[0], bindings, labels, frees, bounds)
-                        self.compile(rest[1], bindings, labels, frees, bounds)
-                        self.compile(rest[2], bindings, labels, frees, bounds)
+                        self.compile(rest[0], labels, frees, bounds)
+                        self.compile(rest[1], labels, frees, bounds)
+                        self.compile(rest[2], labels, frees, bounds)
                         self.emit_symbol(w)
                         self.stack_ind -= 2
                     case w if w in ["string", "vector", "begin"]:
                         cnt = 0
                         for element in rest:
-                            self.compile(element, bindings, labels, frees, bounds)
+                            self.compile(element, labels, frees, bounds)
                             cnt += 1
                         self.emit_symbol(w)
                         emit(len(rest))
                         self.stack_ind -= (cnt - 1)
                     case "if":
-                        self.compile(rest[0], bindings, labels, frees, bounds)
+                        self.compile(rest[0], labels, frees, bounds)
                         emit(I.POP_JUMP_IF_FALSE)
                         emit(get_len(rest[1]) + 2)
-                        self.compile(rest[1], bindings, labels, frees, bounds)
+                        self.compile(rest[1], labels, frees, bounds)
                         emit(I.JUMP_OVER_ELSE)
                         emit(get_len(rest[2]))
-                        self.compile(rest[2], bindings, labels, frees, bounds)
+                        self.compile(rest[2], labels, frees, bounds)
                     case "let":
                         # Compile bindings.
-                        if len(bindings) == 0:
-                            bindings.append({})
+                        print("HERE")
+                        if len(self.bindings) == 0:
+                            self.bindings.append({})
                         else:
-                            bindings.append(bindings[-1].copy())
+                            self.bindings.append(self.bindings[-1].copy())
                         for i, binding in enumerate(rest[0]):
                             print(f"compiling {rest[0][i][1]}")
-                            self.compile(rest[0][i][1], bindings[0:-1], labels, frees, bounds)
-                            if binding[0] in bindings[-1]:
-                                bindings[-1][binding[0]] = (self.stack_ind - 1, bindings[-1][binding[0]][1] + 1)
+                            print(self.bindings)
+                            self.compile(rest[0][i][1], labels, frees, bounds)
+                            if binding[0] in self.bindings[-1]:
+                                self.bindings[-1][binding[0]] = self.stack_ind - 1
                             else:
-                                bindings[-1][binding[0]] = (self.stack_ind - 1, 1)
+                                self.bindings[-1][binding[0]] = self.stack_ind - 1
 
-                        self.compile(rest[1], bindings, labels, frees, bounds)
-                        bindings.pop()
+                        print(f"body compiling {rest[1]}")
+                        self.compile(rest[1], labels, frees, bounds)
+                        self.bindings.pop()
+                        print(f"After pop {self.bindings}")
                         emit(I.END_LET)
                         emit(len(rest[0]))
                         self.stack_ind -= len(rest[0])
                     case "cons":
-                        self.compile(rest[1], bindings, labels, frees, bounds)
-                        self.compile(rest[0], bindings, labels, frees, bounds)
+                        self.compile(rest[1], labels, frees, bounds)
+                        self.compile(rest[0], labels, frees, bounds)
                         emit(I.CONS)
                         self.stack_ind -= 1
                     case "labels":
@@ -176,23 +181,22 @@ class Compiler:
                             emit(I.LABEL)
                             emit(num)
                             labels[element[0]] = num
-                            self.compile(element[1], bindings, labels, frees, bounds)
-
-                        self.compile(rest[1], bindings, labels, frees, bounds)
+                            self.compile(element[1], labels, frees, bounds)
+                        self.compile(rest[1], labels, frees, bounds)
                     case "code":
                         emit(len(rest[0]))
                         emit(len(rest[1]))
                         bounds = rest[0]
                         frees = rest[1]
                         emit(get_len(rest[2]) + 1)
-                        self.compile(rest[2], bindings, labels, frees, bounds)
+                        self.compile(rest[2], labels, frees, bounds)
                         emit(I.RET)
                     case "closure":
                         emit(I.CLOSURE)
                         emit(labels[rest[0]])
                     case _:
-                        self.compile(first, bindings, labels, frees, bounds)
-                        self.compile(rest, bindings, labels, frees, bounds)
+                        self.compile(first, labels, frees, bounds)
+                        self.compile(rest, labels, frees, bounds)
 
     def compile_function(self, expr):
         """
@@ -201,7 +205,7 @@ class Compiler:
         Args:
             expr: Expression to be compiled.
         """
-        self.compile(expr, [], {}, [], [])
+        self.compile(expr, [], [], [])
         self.code.append(I.RETURN)
 
     def write_to_stream(self, f: BinaryIO):
@@ -446,10 +450,9 @@ if __name__ == "__main__":
     #compiler.compile_function(['let', [('a', 2), ('b', 3), ('c', 4), ('d', 5)], ['+', ['let', [('y', 6)], 'y'], ['+', ['let', [('y', 7)], 'y'],'b']]])
     #compiler.compile_function(['let', [('a', 4), ('b', 5)], ['+', 'a', 'b']])
     #compiler.compile_function(['let', [('a', 5)], ['let', [('b', 4)], ['-', 'a', 'b']]])
-    compiler.compile_function(['let', [('a', 4)], ['let', [('b', 4), ('a', ['let', [('a', 5)], 'b'])], ['let', [('a', 6)], 'a']]])
     #compiler.compile_function(['let', [('a', 4)], [['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]]]])
     #compiler.compile_function(["let", [("a", 4)], ['let', [('a', ['let', [('a', 4)], ['a']])], ['let', [('a', 5)], ['a']]]])
-    #compiler.compile_function(['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]])
+    compiler.compile_function(['let', [('a', 4)], ['let', [('b', 4), ('a', ['let', [('a', 5)], 'b'])], ['let', [('a', 6)], 'a']]])
     #compiler.compile_function(['let', [('a', 4)], [['let', [('b', 1), ('a', ['let', [('a', 5)], ['b']])], [['let', [('a', 6)], ['a']]]]]])
     #compiler.compile_function(['let', [('a', 4)], ['+', 'a', 5]])
     #compiler.compile_function(['+', 4, 5])

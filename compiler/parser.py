@@ -87,6 +87,10 @@ class Parser:
         self.source = source
         self.pos = 0
         self.length = len(source)
+        self.in_let = False
+        self.insert_func_name = True
+        self.in_lambda = False
+        self.bound_vars = []
 
     def get_token(self) -> Token:
         """
@@ -359,13 +363,12 @@ class Parser:
 
         return val
 
-    def parse_expr(self, in_let: bool = False) -> list:
+    def parse_expr(self) -> list:
         """
         Parses Scheme function from string.
 
         Args:
             bindings (dict): Map of bindings to indices.
-            in_let (bool): Indicates whether or not to consider identifers as bindings.
 
         Returns:
             list: Expression's AST.
@@ -380,13 +383,13 @@ class Parser:
 
         match self.get_token():
             case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
-                ast = self.parse_args(num_args = 1, in_let = in_let)
+                ast = self.parse_args(num_args = 1)
             case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
-                ast = self.parse_args(num_args = 2, in_let = in_let)
+                ast = self.parse_args(num_args = 2)
             case _ if self.get_token() in [Token.IF, Token.STR_SET, Token.VEC_SET]:
-                ast = self.parse_args(num_args = 3, in_let = in_let)
+                ast = self.parse_args(num_args = 3)
             case _ if self.get_token() in [Token.VEC, Token.BEG]:
-                ast = self.parse_args(num_args = -1, in_let = in_let)
+                ast = self.parse_args(num_args = -1)
             case Token.LET:
                 ast = self.parse_let()
             case Token.LAMBDA:
@@ -397,13 +400,17 @@ class Parser:
                 ast = self.parse_string()
             case Token.OP:
                 ast = self.parse_expr()
-                ret = self.parse_args(num_args = -1, in_let = in_let, function_name = False)
+                self.insert_func_name = False
+                ret = self.parse_args(num_args = -1)
+                self.insert_func_name = True
                 ast = [ast] + ret
-            case _ if in_let and self.get_token() == Token.ID:
-                    ast = (self.text)
-                    self.match()
-                    ret = self.parse_args(num_args = -1, in_let = in_let, function_name = False)
-                    ast = [ast] +ret
+            case _ if self.in_let and self.get_token() == Token.ID:
+                ast = self.text
+                self.match()
+                self.insert_func_name = False
+                ret = self.parse_args(num_args = -1)
+                self.insert_func_name = True
+                ast = [ast] +ret
             case _:
                 raise RuntimeError(f"Unexpected token {self.text}")
 
@@ -414,14 +421,12 @@ class Parser:
 
         return ast
 
-    def parse_args(self, num_args: int = -1, in_let: bool = False, function_name: bool = True) -> list:
+    def parse_args(self, num_args: int = -1) -> list:
         """
         Parses Scheme arguments function from string.
 
         Args:
             num_args (int): Number of arguments to parse, -1 means variable arity.
-            bindings (dict): Map of bindings to indices.
-            in_let (bool): Indicates whether or not to consider identifers as bindings.
 
         Returns:
             list: Expression's AST.
@@ -430,7 +435,7 @@ class Parser:
             RuntimeError: Unexpected token received.
         """
         # Insert function name.
-        if function_name:
+        if self.insert_func_name:
             ast = [self.text]
             self.match()
         else:
@@ -447,8 +452,8 @@ class Parser:
                 case Token.BOOL:
                     ast.append(self.parse_bool())
                 case Token.OP:
-                    ast.append(self.parse_expr(in_let = in_let))
-                case _ if in_let and self.get_token() == Token.ID:
+                    ast.append(self.parse_expr())
+                case _ if (self.in_let or self.in_lambda) and self.get_token() == Token.ID:
                     ast.append(self.text)
                     self.match()
                 case _:
@@ -500,6 +505,8 @@ class Parser:
         Raises:
             RuntimeError: Unexpected token received or invalid binding.
         """
+        self.in_let = True
+
         # Insert function name.
         ast = [self.text]
 
@@ -570,7 +577,7 @@ class Parser:
                 case Token.BOOL:
                     expr_list.append(self.parse_bool())
                 case Token.OP:
-                    expr_list.append(self.parse_expr(in_let = True))
+                    expr_list.append(self.parse_expr())
                 case Token.ID:
                     expr_list.append(self.text)
                     self.match()
@@ -582,6 +589,8 @@ class Parser:
 
         # Append expression list to AST.
         ast += expr_list
+
+        self.in_let = False
 
         return ast
 
@@ -597,6 +606,8 @@ class Parser:
         Raises:
             RuntimeError: Invalid labels syntax.
         """
+        self.in_lambda = True
+
         # Insert and consume "lambda".
         ast = [self.text]
         self.match()
@@ -606,7 +617,7 @@ class Parser:
             raise RuntimeError(f"Unexpected token {self.text}")
         self.match()
 
-        bound_vars = []
+        self.bound_vars = []
 
         # Extract the names of the bound variables.
         while t := self.get_token() != Token.CP:
@@ -615,10 +626,10 @@ class Parser:
             var = self.text
             self.match()
 
-            if var in bound_vars:
+            if var in self.bound_vars:
                 raise RuntimeError(f"Repeat bound variable detected {var}")
 
-            bound_vars.append(var)
+            self.bound_vars.append(var)
 
         # Consume closing parenthesis.
         if self.get_token() != Token.CP:
@@ -626,34 +637,30 @@ class Parser:
         self.match()
 
         # Parse body.
-        expr_list = []
         while self.get_token() != Token.CP:
             match self.get_token():
                 case Token.INT:
-                    expr_list.append(self.parse_int())
+                    expr = self.parse_int()
                 case Token.CHAR:
-                    expr_list.append(self.parse_char())
+                    expr = self.parse_char()
                 case Token.BOOL:
-                    expr_list.append(self.parse_bool())
+                    expr = self.parse_bool()
                 case Token.OP:
-                    expr_list.append(self.parse_expr(in_let = True))
+                    expr = self.parse_expr()
                 case Token.ID:
-                    expr_list.append(self.text)
+                    expr = self.text
                     self.match()
                 case _:
                     raise RuntimeError(f"Unexpected token {self.text}")
 
-        expr_list = expr_list[0]
-
         # Lift free variables from expression.
-        free_vars = get_free_vars(bound_vars, expr_list)
-
-        # Annotate free variables in expression list.
-        expr_list = annotate_free_vars(free_vars, expr_list)
-
-        ast.append(bound_vars)
+        free_vars = get_free_vars(self.bound_vars, expr)
+ 
+        ast.append(self.bound_vars)
         ast.append(free_vars)
-        ast.append(expr_list)
+        ast.append(expr)
+
+        self.in_lambda = False
 
         return ast
 
@@ -687,21 +694,23 @@ def convert_to_closure_helper(ast: list, labels, cur_count, new_ast = []) -> lis
             return ast
         case []:
             return ast
-        case _ if type(ast) is Free:
-            return ast
         case _:
             raise NotImplementedError("Not yet implemented")
 
 def convert_to_closure(ast: list) -> list:
     labels = {}
-    body = []
 
-    body.append(convert_to_closure_helper(ast, labels, 0))
+    body = convert_to_closure_helper(ast, labels, 0)
 
     if len(labels) != 0:
+        for name, code in labels.items():
+            code[2] = annotate_free_vars(code[1], code[2])
+            code[2] = annotate_bound_vars(code[0], code[2])
         labels = [(name, ["code"] + code) for name, code in labels.items()]
-        return ["labels", labels] + body
+        body = annotate_locals(body, [])
+        return ["labels", labels] + [body]
     else:
+        ast = annotate_locals(ast, [])
         return ast
 
 def get_free_vars_helper(bound_vars, expr, free_vars):
@@ -734,6 +743,37 @@ def annotate_free_vars(free_vars, expr):
         case _:
             return expr
 
+def annotate_bound_vars(bound_vars, expr):
+    match expr:
+        case _ if type(expr) is str and expr in bound_vars:
+            return Bound(expr)
+        case [first, *rest]:
+            return [annotate_bound_vars(bound_vars, first), *[annotate_bound_vars(bound_vars, r) for r in rest]]
+        case _:
+            return expr
+
+def annotate_locals(expr: list, locals: list):
+    match expr:
+        case _ if len(locals) != 0 and type(expr) is str and expr in locals[-1]:
+            return Local(expr)
+        case [first, *rest]:
+            if first == "let":
+                # Add all bound locals to set.
+                if len(locals) != 0:
+                    locals.append(locals[-1])
+                else:
+                    locals = [set()]
+                new_bindings = [(b[0], annotate_locals(b[1], locals)) for b in rest[0]]
+                for binding in rest[0]:
+                    locals[-1].add(binding[0])
+                ret_val = [first, new_bindings, annotate_locals(rest[1], locals)]
+                locals.pop()
+                return ret_val
+            else:
+                return [annotate_locals(first, locals), *[annotate_locals(r, locals) for r in rest]]
+        case _:
+            return expr
+
 def scheme_parse(source: str) -> int | bool | str | list:
     """
     Wrapper around Parser class and parse() function.
@@ -757,8 +797,9 @@ if __name__ == "__main__":
     #print(scheme_parse("(lambda (x) (+ x y))"))
     #print(scheme_parse("(lambda (x y) (+ x y))"))
     #print(scheme_parse("((lambda (x) (+ x y)) (+ 4 5))"))
-    #print(scheme_parse("(let ((a (let ((a 4)) a))) a)"))
-    print(scheme_parse("(let ((x 2) (y 3)) (+ (let ((y 4)) y) y))"))
+    print(scheme_parse("(let ((b (let ((a 4)) a))) b)"))
+    #print(scheme_parse("(let ((x 2) (y 3)) (+ (let ((y 4)) y) y))"))
+    #print(scheme_parse("((let ((x 2)) (lambda () (+ x 3))) 4)"))
     #print(scheme_parse("((let ((x 3) (y 4)) (lambda () (+ x y))))"))
     #print(scheme_parse("(+ 4 5)"))
     #print(scheme_parse("((+ 4 5))"))

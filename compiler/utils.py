@@ -25,7 +25,7 @@ class Bound:
         return self.name
 
     def __eq__(self, other):
-        if not isinstance(other, Free):
+        if not isinstance(other, Bound):
             return False
         return self.name == other.name
 
@@ -37,7 +37,7 @@ class Local:
         return self.name
 
     def __eq__(self, other):
-        if not isinstance(other, Free):
+        if not isinstance(other, Local):
             return False
         return self.name == other.name
 
