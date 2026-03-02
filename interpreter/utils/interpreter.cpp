@@ -874,6 +874,7 @@ void Interpreter::code_label(void) {
     // Place code data onto heap.
     heap.push_back(pc);
     heap.push_back(num_bounds);
+    heap.resize(heap.size() + num_frees);
 
     // Place heap pointer onto bottom of stack and advance base pointer.
     push(heap_ptr);
@@ -911,10 +912,8 @@ void Interpreter::call(void) {
     args = std::vector<uint64_t>(num_args);
 
     // Pop arguments off of stack.
-    for (i = 0; i < num_args; i++)
+    for (i = 0; i < (int64_t)num_args; i++)
         args[i] = pop();
-
-    std::cout << "RETURNED\n";
 
     // Save return address onto stack.
     push(pc);
