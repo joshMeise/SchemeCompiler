@@ -88,5 +88,12 @@ class LambdaParseTests(unittest.TestCase):
         """
         self.assertEqual(self._parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"), ["labels", [("f0", ["code", [], [], 4]), ("f1", ["code", [], [], 3])], ['let', [('a', [['closure', 'f0']]), ('b', [['closure', 'f1']])], ['+', Local('a'), Local('b')]]])
 
+    def test_lambda_two_bound_two_free(self):
+        """
+        Test (let ((a 5) (b 1)) (lambda (x y) (+ (- (- y x) b) a)))
+        """
+        self.assertEqual(self._parse("(let ((a 5) (b 1)) (lambda (x y) (+ (- (- y x) b) a)))"), ["labels", [("f2", ["code", ["x", "y"], ["b", "a"], ["+", ["-", ["-", Bound("y"), Bound("x")], Free("b")], Free("a")]])], ["let", [("a", 5), ("b", 1)], ["closure", "f2", Local("b"), Local("a")]]])
+
+
 if __name__ == '__main__':
     unittest.main()

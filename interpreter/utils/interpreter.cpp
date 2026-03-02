@@ -917,7 +917,8 @@ void Interpreter::call(void) {
     base_ptr = stack_ptr - 1;
 
     // Push given numebr of arguments onto stack (index off of base pointer).
-    for (i = (int64_t)num_args - 1; i >= 0; i--) push(stack[base_ptr - 2 - i]);
+    for (i = (int64_t)num_args - 1; i >= 0; i--)
+        push(stack[base_ptr - 2 - i]);
 
     // Update program counter to code's location.
     pc = code_loc;
@@ -973,5 +974,5 @@ void Interpreter::set_frees(void) {
 
     // Place frees into curent closure object.
     for (i = 0; i < num_frees; i++)
-        heap[closure_ptr + 2 + i] = pop();
+        heap[closure_ptr + 1 + num_frees - i] = pop();
 }
