@@ -187,6 +187,8 @@ class Compiler:
                         self.frees = rest[1]
                         self.compile(rest[2])
                         emit(I.RET)
+                        self.stack_ind -= 2
+                        self.stack_ind -= len(rest[0])
                     case "closure":
                         emit(I.CLOSURE)
                         emit(self.labels.index(rest[0]))
@@ -207,6 +209,7 @@ class Compiler:
                             self.compile(element)
                         self.compile(first)
                         emit(I.CALL)
+                        self.stack_ind -= len(rest)
 
     def compile_function(self, expr):
         """
