@@ -475,6 +475,6 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", "x", "y"]])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", [], [], 3])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(['labels', [('f1', ['code', ['y'], ['x'], ['+', Free('x'), Bound('y')]])], [['let', [('x', 2)], ['closure', 'f1', 'x']], 4]])
-    compiler.compile_function(["labels", [("f2", ["code", ["x", "y"], ["b", "a"], ["+", ["-", ["-", Bound("y"), Bound("x")], Free("b")], Free("a")]])], ["let", [("a", 5), ("b", 1)], [["closure", "f2", Local("b"), Local("a")], 9, 11]]])
+    compiler.compile_function(["labels", [("f1", ["code", ["y"], ["b"], ["+", Bound("y"), Free("b")]])], ["let", [("b", 2)], ["let", [("a", ["closure", "f1", Local("b")])], ["+", [Local("a"), 1], [Local("a"), 1]]]]])
     print(compiler.code)
 

@@ -801,7 +801,7 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((a 4)) (let ((b 4) (a (let ((a 5)) b))) (let ((a 6)) a)))"))
     #print(scheme_parse("(let ((a 4)) (let ((a 5)) (let ((a 6)) a)))"))
     #print(scheme_parse("(lambda (x y) (lambda () (+ x y)))"))
-    print(scheme_parse("(let ((a 5) (b 1)) (lambda (x y) (+ (- (- y x) b) a)))"))
+    #print(scheme_parse("(let ((a 5) (b 1)) (lambda (x y) (+ (- (- y x) b) a)))"))
     #print(scheme_parse("(lambda () (+ x y))"))
     #print(scheme_parse("(lambda (x) (+ x y))"))
     #print(scheme_parse("(lambda (x y) (+ x y))"))
@@ -821,3 +821,4 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))"))
     #print(scheme_parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"))
     #print(scheme_parse("(let ((x 3)) (lambda (y) y))"))
+    print(scheme_parse("(let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))"))

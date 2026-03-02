@@ -898,6 +898,7 @@ void Interpreter::closure(void) {
 
 void Interpreter::call(void) {
     uint64_t closure, num_args, code_loc;
+    std::vector<uint64_t> args;
     int64_t i;
 
     // Pop heap location of closure object off of stack.
@@ -906,6 +907,14 @@ void Interpreter::call(void) {
     // Get details for closure from heap location.
     code_loc = heap[closure];
     num_args = heap[closure + 1];
+
+    args = std::vector<uint64_t>(num_args);
+
+    // Pop arguments off of stack.
+    for (i = 0; i < num_args; i++)
+        args[i] = pop();
+
+    std::cout << "RETURNED\n";
 
     // Save return address onto stack.
     push(pc);
@@ -916,9 +925,9 @@ void Interpreter::call(void) {
     // Move base pointer to top of stack (will point at old saved base pointer location).
     base_ptr = stack_ptr - 1;
 
-    // Push given numebr of arguments onto stack (index off of base pointer).
+    // Push given numebr of arguments onto stack.
     for (i = (int64_t)num_args - 1; i >= 0; i--)
-        push(stack[base_ptr - 2 - i]);
+        push(args[i]);
 
     // Update program counter to code's location.
     pc = code_loc;
