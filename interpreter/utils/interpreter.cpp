@@ -81,12 +81,13 @@ enum class OpCode : uint64_t {
     VEC_SET = 33,
     VEC_APP = 34,
     BEG = 35,
-    LABEL = 36,
-    CODE = 37,
-    CLOSURE = 38,
-    GET_ARG = 39,
-    RET = 40,
-    CALL = 41
+    CODE = 36,
+    CLOSURE = 37,
+    GET_ARG = 38,
+    RET = 39,
+    CALL = 40,
+    GET_FREE = 41,
+    SET_FREES = 42
 };
 
 // Build insturction out of 4 bytes.
@@ -283,9 +284,9 @@ uint64_t Interpreter::interpret(void) {
                 // Clean up stack and place return value on top.
                 begin();
                 break;
-            case OpCode::LABEL:
+            case OpCode::CODE:
                 // Create an entry in the environment for the label.
-                label();
+                code_label();
                 break;
             case OpCode::CLOSURE:
                 // Place closure object onto stack.
@@ -303,6 +304,14 @@ uint64_t Interpreter::interpret(void) {
                 // Get argument onto stack.
                 get_arg();
                 break;
+            case OpCode::GET_FREE:
+                // GEt free variable onto stack.
+                get_free();
+                break;
+            case OpCode::SET_FREES:
+                // Set free variable alues in closure object.
+                set_frees();
+                break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
                 break;
@@ -316,8 +325,9 @@ uint64_t Interpreter::interpret(void) {
 void Interpreter::print_val(uint64_t val, std::ostream*& output) {
     uint64_t i;
 
-    if ((val & FIXNUM_MASK) == FIXNUM_TAG)
+    if ((val & FIXNUM_MASK) == FIXNUM_TAG) {
         *output << (val >> FIXNUM_SHIFT);
+    }
     else if ((val & BOOL_MASK) == BOOL_TAG)
         if (val >> BOOL_SHIFT == 1) *output << "#t";
         else if (val >> BOOL_SHIFT == 0) *output << "#f";
@@ -348,9 +358,10 @@ void Interpreter::print_val(uint64_t val, std::ostream*& output) {
         *output << ")";
     }
     else if ((val & CLOSURE_MASK) == CLOSURE_TAG)
-        *output << "function " << heap[val >> CLOSURE_SHIFT];
+        *output << "function";
     else
         throw std::runtime_error("Invlaid type.\n");
+
 }
 
 // Get instruction from stack.
@@ -848,43 +859,41 @@ void Interpreter::begin(void) {
     push(ret_val);
 }
 
-void Interpreter::label(void) {
-    uint64_t label_id, code_len, num_args;
-
-    label_id = read_word();
-
-    // Create entry in labels envorinment mapping label to heap location.
-    labels_env.insert({label_id, heap_ptr});
-
-    // Get number of formal paramaters.
-    num_args = read_word();
+void Interpreter::code_label(void) {
+    uint64_t code_len, num_frees, num_bounds;
 
     // Get length of code.
     code_len = read_word();
 
+    // Get number of bound variables.
+    num_bounds = read_word();
+
+    // Get number of free variables.
+    num_frees = read_word();
+
     // Place code data onto heap.
-    heap.push_back(label_id);
     heap.push_back(pc);
-    heap.push_back(num_args);
+    heap.push_back(num_bounds);
+
+    // Place heap pointer onto bottom of stack and advance base pointer.
+    push(heap_ptr);
+    base_ptr++;
 
     // Advance heap pointer.
-    heap_ptr += CLOSURE_LEN;
+    heap_ptr += (CLOSURE_LEN + num_frees);
 
     // Advance program counter past code.
     pc += code_len;
-
 }
 
 void Interpreter::closure(void) {
-    uint64_t ind, addr;
+    uint64_t addr;
 
-    // Figure out which label is being obtained from environment.
-    ind = read_word();
-
-    // Get heap address of closure object and place tagged value onto stack.
-    addr = labels_env[ind];
+    // Figure out heap address of label.
+    addr = stack[read_word()];
 
     push(((addr << CLOSURE_SHIFT) & ~CLOSURE_MASK) | CLOSURE_TAG);
+
 }
 
 void Interpreter::call(void) {
@@ -895,8 +904,8 @@ void Interpreter::call(void) {
     closure = pop() >> CLOSURE_SHIFT;
 
     // Get details for closure from heap location.
-    code_loc = heap[closure + 1];
-    num_args = heap[closure + 2];
+    code_loc = heap[closure];
+    num_args = heap[closure + 1];
 
     // Save return address onto stack.
     push(pc);
@@ -941,4 +950,28 @@ void Interpreter::get_arg(void) {
 
     // Place argument onto the top of the stack.
     push(stack[base_ptr + 1 + arg_ind]);
+}
+
+void Interpreter::get_free(void) {
+    uint64_t closure_ptr;
+
+    // Find out which closure to get free from.
+    closure_ptr = stack[read_word()];
+
+    // Place free onto stack.
+    push(heap[closure_ptr + 2 + read_word()]);
+}
+
+void Interpreter::set_frees(void) {
+    uint64_t num_frees, i, closure_ptr;
+
+    // Find out which closure to read from.
+    closure_ptr = stack[read_word()];
+
+    // Check how many free variables there are.
+    num_frees = read_word();
+
+    // Place frees into curent closure object.
+    for (i = 0; i < num_frees; i++)
+        heap[closure_ptr + 2 + i] = pop();
 }

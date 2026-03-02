@@ -42,15 +42,27 @@ class LambdaParseTests(unittest.TestCase):
 
     def test_lambda_one_free(self):
         """
-        Test (lambda () x).
+        Test (let ((x 5)) (lambda () x)).
         """
-        self.assertEqual(self._parse("(lambda () x)"), ["labels", [("f0", ["code", [], ["x"], Free("x")])], ["closure", "f0", "x"]])
+        self.assertEqual(self._parse("(let ((x 5)) (lambda () x))"), ["labels", [("f1", ["code", [], ["x"], Free("x")])], ["let", [("x", 5)], ["closure", "f1", Local("x")]]])
+
+    def test_lambda_one_free_called_1(self):
+        """
+        Test ((let ((x 5)) (lambda () x))).
+        """
+        self.assertEqual(self._parse("((let ((x 5)) (lambda () x)))"), ["labels", [("f1", ["code", [], ["x"], Free("x")])], [["let", [("x", 5)], ["closure", "f1", Local("x")]]]])
+
+    def test_lambda_one_free_called_2(self):
+        """
+        Test (let ((x 5)) ((lambda () x))).
+        """
+        self.assertEqual(self._parse("(let ((x 5)) ((lambda () x)))"), ["labels", [("f1", ["code", [], ["x"], Free("x")])], ["let", [("x", 5)], [["closure", "f1", Local("x")]]]])
 
     def test_lambda_two_free(self):
         """
-        Test (lambda () (+ x y)).
+        Test (let ((x 5) (y 4)) (lambda () (+ x y))).
         """
-        self.assertEqual(self._parse("(lambda () (+ x y))"), ["labels", [("f0", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]])], ["closure", "f0", "x", "y"]])
+        self.assertEqual(self._parse("(let ((x 5) (y 4)) (lambda () (+ x y)))"), ["labels", [("f2", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]])], ["let", [("x", 5), ("y", 4)], ["closure", "f2", Local("x"), Local("y")]]])
 
     def test_lambda_with_let_bound(self):
         """

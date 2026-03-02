@@ -32,7 +32,6 @@ private:
     // Member variables.
     std::vector<uint64_t> code;
     std::vector<uint64_t> stack;
-    std::unordered_map<uint64_t, uint64_t> labels_env;
     std::vector<uint64_t> heap;
     uint64_t pc;
     uint64_t stack_ptr;
@@ -147,7 +146,7 @@ private:
     // Clean up stack after evaluating expressions in begin.
     void begin(void);
 
-    void label(void);
+    void code_label(void);
 
     void closure(void);
 
@@ -156,4 +155,8 @@ private:
     void ret(void);
 
     void get_arg(void);
+
+    void get_free(void);
+
+    void set_frees(void);
 };
