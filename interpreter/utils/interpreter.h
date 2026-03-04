@@ -47,6 +47,9 @@ private:
     // Pop value from stack.
     uint64_t pop(void);
 
+    // Print out current state of stack.
+    void inspect_stack(void);
+
     // Add 1 to top value on stack.
     void add1(void);
 

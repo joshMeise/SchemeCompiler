@@ -50,13 +50,13 @@ class LambdaParseTests(unittest.TestCase):
         """
         Test ((let ((x 5)) (lambda () x))).
         """
-        self.assertEqual(self._parse("((let ((x 5)) (lambda () x)))"), ["labels", [("f1", ["code", [], ["x"], Free("x")])], [["let", [("x", 5)], ["closure", "f1", Local("x")]]]])
+        self.assertEqual(self._parse("((let ((x 5)) (lambda () x)))"), ["labels", [("f2", ["code", [], ["x"], Free("x")])], [["let", [("x", 5)], ["closure", "f2", Local("x")]]]])
 
     def test_lambda_one_free_called_2(self):
         """
         Test (let ((x 5)) ((lambda () x))).
         """
-        self.assertEqual(self._parse("(let ((x 5)) ((lambda () x)))"), ["labels", [("f1", ["code", [], ["x"], Free("x")])], ["let", [("x", 5)], [["closure", "f1", Local("x")]]]])
+        self.assertEqual(self._parse("(let ((x 5)) ((lambda () x)))"), ["labels", [("f2", ["code", [], ["x"], Free("x")])], ["let", [("x", 5)], [["closure", "f2", Local("x")]]]])
 
     def test_lambda_two_free(self):
         """
@@ -74,7 +74,7 @@ class LambdaParseTests(unittest.TestCase):
         """
         Test ((lambda () 3)).
         """
-        self.assertEqual(self._parse("((lambda () 3))"), ["labels", [("f0", ["code", [], [], 3])], [["closure", "f0"]]])
+        self.assertEqual(self._parse("((lambda () 3))"), ["labels", [("f1", ["code", [], [], 3])], [["closure", "f1"]]])
 
     def test_lambda_called_one_arg(self):
         """
@@ -86,7 +86,7 @@ class LambdaParseTests(unittest.TestCase):
         """
         Test (let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b)).
         """
-        self.assertEqual(self._parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"), ["labels", [("f0", ["code", [], [], 4]), ("f1", ["code", [], [], 3])], ['let', [('a', [['closure', 'f0']]), ('b', [['closure', 'f1']])], ['+', Local('a'), Local('b')]]])
+        self.assertEqual(self._parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"), ["labels", [("f1", ["code", [], [], 4]), ("f2", ["code", [], [], 3])], ['let', [('a', [['closure', 'f1']]), ('b', [['closure', 'f2']])], ['+', Local('a'), Local('b')]]])
 
     def test_lambda_two_bound_two_free(self):
         """
@@ -99,6 +99,31 @@ class LambdaParseTests(unittest.TestCase):
         Test (let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))
         """
         self.assertEqual(self._parse("(let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))"), ["labels", [("f1", ["code", ["y"], ["b"], ["+", Bound("y"), Free("b")]])], ["let", [("b", 2)], ["let", [("a", ["closure", "f1", Local("b")])], ["+", [Local("a"), 1], [Local("a"), 1]]]]])
+
+    def test_lambda_nested_uncalled(self):
+        """
+        Test (let ((x 5)) (lambda (y) (lambda () (+ x y)))).
+        """
+        self.assertEqual(self._parse("(let ((x 5)) (lambda (y) (lambda () (+ x y))))"), ["labels", [("f2", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", ["y"], ["x"], ["closure", "f2", Free("x"), Bound("y")]])], ["let", [("x", 5)], ["closure", "f1", Local("x")]]])
+
+    def test_lambda_nested_called(self):
+        """
+        Test (let ((x 5)) (((lambda (y) (lambda () (+ x y))) 3))).
+        """
+        self.assertEqual(self._parse("(let ((x 5)) (((lambda (y) (lambda () (+ x y))) 3)))"), ["labels", [("f3", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f2", ["code", ["y"], ["x"], ["closure", "f3", Free("x"), Bound("y")]])], ["let", [("x", 5)], [[["closure", "f2", Local("x")], 3]]]])
+
+    def test_lambda_as_arg(self):
+        """
+        Test ((lambda (x) x) ((lambda () 5))).
+        """
+        self.assertEqual(self._parse("((lambda (x) x) ((lambda () 5)))"), ["labels", [("f0", ["code", ["x"], [], Bound("x")]), ("f2", ["code", [], [], 5])], [["closure", "f0"], [["closure", "f2"]]]])
+
+    def test_lambda_tail_called(self):
+        """
+        Test ((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))
+        """
+        self.assertEqual(self._parse("((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))"), ["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
+
 
 if __name__ == '__main__':
     unittest.main()

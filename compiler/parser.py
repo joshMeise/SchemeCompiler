@@ -378,6 +378,7 @@ class Parser:
             RuntimeError: Unexpected token received.
         """
         ast = []
+        self.insert_func_name = True
 
         # Consume opening parenthesis.
         self.match()
@@ -403,14 +404,12 @@ class Parser:
                 ast = self.parse_expr()
                 self.insert_func_name = False
                 ret = self.parse_args(num_args = -1)
-                self.insert_func_name = True
                 ast = [ast] + ret
-            case _ if self.in_let and self.get_token() == Token.ID:
+            case _ if self.in_let or self.in_lambda and self.get_token() == Token.ID:
                 ast = self.text
                 self.match()
                 self.insert_func_name = False
                 ret = self.parse_args(num_args = -1)
-                self.insert_func_name = True
                 ast = [ast] +ret
             case _:
                 raise RuntimeError(f"Unexpected token {self.text}")
@@ -673,7 +672,7 @@ def get_closure_form(lambda_body, cur_count):
 def convert_to_closure_helper(ast: list, labels, cur_count, new_ast = []) -> list:
     match ast:
         case [only]:
-            return [convert_to_closure_helper(only, labels, cur_count, new_ast)]
+            return [convert_to_closure_helper(only, labels, cur_count + 1, new_ast)]
         case [first, *rest]:
             if first == "lambda":
                 labels[f"f{cur_count}"] = [rest[0], rest[1], convert_to_closure_helper(rest[2], labels, cur_count + 1)]
@@ -742,10 +741,7 @@ def annotate_free_vars(free_vars, expr):
         case _ if type(expr) is str and expr in free_vars:
             return Free(expr)
         case [first, *rest]:
-            if first == "closure":
-                return expr
-            else:
-                return [annotate_free_vars(free_vars, first), *[annotate_free_vars(free_vars, r) for r in rest]]
+            return [annotate_free_vars(free_vars, first), *[annotate_free_vars(free_vars, r) for r in rest]]
         case _:
             return expr
 
@@ -754,10 +750,7 @@ def annotate_bound_vars(bound_vars, expr):
         case _ if type(expr) is str and expr in bound_vars:
             return Bound(expr)
         case [first, *rest]:
-            if first == "closure":
-                return expr
-            else:
-               return [annotate_bound_vars(bound_vars, first), *[annotate_bound_vars(bound_vars, r) for r in rest]]
+            return [annotate_bound_vars(bound_vars, first), *[annotate_bound_vars(bound_vars, r) for r in rest]]
         case _:
             return expr
 
@@ -821,4 +814,5 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))"))
     #print(scheme_parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"))
     #print(scheme_parse("(let ((x 3)) (lambda (y) y))"))
-    print(scheme_parse("(let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))"))
+    print(scheme_parse("((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))"))
+    #print(scheme_parse("(((lambda (x) x) ((lambda () 5)))(lambda (x) x) ((lambda () 5)))"))

@@ -307,32 +307,71 @@ def get_len(expr) -> int:
     Returns:
         int: Number of instructions in expression's bytecode.
     """
-    len = 0
+    length = 0
 
     match expr:
-        case c if (c in BINARY_OPS or c in UNARY_OPS):
-            len += 1
-        case "if":
-            len += 4
-        case bool(_):
-            len += 2
-        case int(_):
-            len += 2
-        case str(_):
-            len += 2
-        case _ if type(expr) is Free:
-            len += 3
-        case _ if type(expr) is Bound or type(expr) is Local:
-            len += 2
-        case []:
-            len += 2
-        case [only]:
-            len += get_len(only)
-        case [first, *rest]:
-            len += get_len(first)
-            len += get_len(rest)
+            # Handle the case of the empty vector constructor.
+            case ["vector"]:
+                length += 2
+            case bool(_):
+                length += 2
+            case int(_):
+                length += 2
+            case s if type(expr) is Free:
+                length += 3
+            case s if type(expr) is Bound:
+                length += 2
+            case s if type(expr) is Local:
+                length += 2
+            case str(s):
+                match s[0]:
+                    case "#":
+                        length += 2
+                    case _:
+                        raise RuntimeError(f"Unknown string {s}.")
+            case [only]:
+                length += (get_len(only) + 1)
+            case []:
+                length += 2
+            # Compilation of an expression.
+            case [first, *rest]:
+                match first:
+                    case w if w in BINARY_OPS:
+                        length += (get_len(rest[0]) + get_len(rest[1]) + 1)
+                    case w if w in UNARY_OPS:
+                        length += (get_len(rest[0]) + 1)
+                    case w if w in TERNARY_OPS:
+                        length += (get_len(rest[0]) + get_len(rest[1]) + get_len(rest[2]) + 1)
+                    case w if w in ["string", "vector", "begin"]:
+                        for element in rest:
+                            length += get_len(element)
+                        length += 2
+                    case "if":
+                        length += (get_len(rest[0]) + 2 + get_len(rest[1]) + 2 + get_len(rest[2]))
+                    case "let":
+                        for i, binding in enumerate(rest[0]):
+                            length += get_len(rest[1][i][1])
+                        length += (get_len(rest[1]) + 2)
+                    case "cons":
+                        length += (get_len(rest[1]) + get_len(rest[0]) + 1)
+                    case "labels":
+                        for element in rest[0]:
+                            length += get_len(element[1])
+                        length += get_len(rest[1])
+                    case "code":
+                        length += (5 + get_len(rest[2]))
+                    case "closure":
+                        length += 2
+                        if len(rest) > 1:
+                            for element in rest[1:]:
+                                length += get_len(element)
+                        length += 3
+                    case _:
+                        for element in rest:
+                            length += get_len(element)
+                        length += (get_len(first) + 1)
 
-    return len
+    return length
 
 def box_fixnum(val: int) -> int:
     """
@@ -478,6 +517,6 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", "x", "y"]])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", [], [], 3])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(['labels', [('f1', ['code', ['y'], ['x'], ['+', Free('x'), Bound('y')]])], [['let', [('x', 2)], ['closure', 'f1', 'x']], 4]])
-    compiler.compile_function(["labels", [("f1", ["code", ["y"], ["b"], ["+", Bound("y"), Free("b")]])], ["let", [("b", 2)], ["let", [("a", ["closure", "f1", Local("b")])], ["+", [Local("a"), 1], [Local("a"), 1]]]]])
+    compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
     print(compiler.code)
 

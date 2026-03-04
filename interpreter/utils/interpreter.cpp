@@ -42,7 +42,7 @@
 #define CLOSURE_MASK 7
 #define CLOSURE_TAG 6
 
-#define CLOSURE_LEN 3
+#define CLOSURE_LEN 2
 
 // enumerations of opcodes.
 enum class OpCode : uint64_t {
@@ -390,6 +390,21 @@ uint64_t Interpreter::pop(void) {
     stack_ptr--;
 
     return val;
+}
+
+// Print current state of the stack.
+void Interpreter::inspect_stack(void) {
+    int64_t i;
+
+    std::cout << "Stack pointer = " << stack_ptr << std::endl;
+
+    for (i = (int64_t)stack_ptr - 1; i >= 0; i--) {
+        std::cout << std::format("{:15}", stack[i]);
+        if (i == base_ptr)
+            std::cout << "   <=== " << base_ptr << std::endl;
+        else
+            std::cout << std::endl;
+    }
 }
 
 // Add 1 to the top value on the stack.
