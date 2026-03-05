@@ -1,4 +1,4 @@
-# parser.py - 
+#parser.py - 
 #
 # Josh Meise
 # 01-30-2026
@@ -64,6 +64,8 @@ class Token(enum.IntEnum):
     LAMBDA = enum.auto()
     QUOTE = enum.auto()
     VEC_LIT = enum.auto()
+    LETREC = enum.auto()
+    LETSTAR = enum.auto()
 
 class Parser:
     """
@@ -94,6 +96,7 @@ class Parser:
         self.in_lambda = False
         self.bound_vars = []
         self.free_vars = []
+        self.in_let_star_rec = False
 
     def get_token(self) -> Token:
         """
@@ -185,6 +188,12 @@ class Parser:
             case _ if t := re.match(r"=", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.EQ
+            case _ if t:= re.match(r"letrec", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.LETREC
+            case _ if t:= re.match(r"let\*", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.LETSTAR
             case _ if t := re.match(r"let", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.LET
@@ -399,6 +408,10 @@ class Parser:
                 ast = self.parse_args(num_args = -1)
             case Token.LET:
                 ast = self.parse_let()
+            case Token.LETSTAR | Token.LETREC:
+                self.in_let_star_rec = True
+                ast = self.parse_let()
+                self.in_let_star_rec = False
             case Token.LAMBDA:
                 ast = self.parse_lambda()
             case Token.CP:
@@ -410,7 +423,7 @@ class Parser:
                 self.insert_func_name = False
                 ret = self.parse_args(num_args = -1)
                 ast = [ast] + ret
-            case _ if self.in_let or self.in_lambda and self.get_token() == Token.ID:
+            case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and self.get_token() == Token.ID:
                 ast = self.text
                 self.match()
                 self.insert_func_name = False
@@ -460,7 +473,7 @@ class Parser:
                     ast.append(self.parse_bool())
                 case Token.OP:
                     ast.append(self.parse_expr())
-                case _ if (self.in_let or self.in_lambda) and self.get_token() == Token.ID:
+                case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and self.get_token() == Token.ID:
                     ast.append(self.text)
                     self.match()
                 case _:
@@ -549,6 +562,9 @@ class Parser:
                     expr = self.parse_bool()
                 case Token.OP:
                     expr = self.parse_expr()
+                case _ if self.in_let_star_rec and self.get_token() == Token.ID:
+                    expr = self.text
+                    self.match()
                 case _:
                     raise RuntimeError(f"Unexpected token {self.text}")
 
@@ -562,7 +578,7 @@ class Parser:
                 raise RuntimeError(f"Repeat binding name detected {binding_name}")
 
             # Add binding to bindings set.
-            bindings[binding_name] =expr
+            bindings[binding_name] = expr
 
         bindings_list = []
         for binding in bindings:
@@ -686,8 +702,6 @@ class Parser:
                 expr = self.parse_char()
             case Token.BOOL:
                 expr = self.parse_bool()
-            case _ if self.text[self.pos:] == "#":
-                print("HI")
             case Token.OP:
                 expr = self.text
                 self.match()
@@ -718,7 +732,7 @@ def convert_to_closure_helper(ast: list, labels, cur_count, new_ast = []) -> lis
             if first == "lambda":
                 labels[f"f{cur_count}"] = [rest[0], rest[1], convert_to_closure_helper(rest[2], labels, cur_count + 1)]
                 return get_closure_form(rest[1], cur_count)
-            elif first == "let":
+            elif first == "let" or first == "let*":
                 ret_val = [first]
                 bindings = []
                 for element in rest[0]:
@@ -812,6 +826,32 @@ def annotate_locals(expr: list, locals: list):
                 ret_val = [first, new_bindings, annotate_locals(rest[1], locals)]
                 locals.pop()
                 return ret_val
+            elif first == "let*":
+                # Add all bound locals to set.
+                if len(locals) != 0:
+                    locals.append(locals[-1])
+                else:
+                    locals = [set()]
+                    new_bindings = []
+                for binding in rest[0]:
+                    locals[-1].add(binding[0])
+                    new_bindings.append((binding[0], annotate_locals(binding[1], locals)))
+                ret_val = [first, new_bindings, annotate_locals(rest[1], locals)]
+                locals.pop()
+                return ret_val
+            elif first == "letrec":
+                # Add all bound locals to set.
+                if len(locals) != 0:
+                    locals.append(locals[-1])
+                else:
+                    locals = [set()]
+                    new_bindings = []
+                for binding in rest[0]:
+                    locals[-1].add(binding[0])
+                new_bindings = [(b[0], annotate_locals(b[1], locals)) for b in rest[0]]
+                ret_val = [first, new_bindings, annotate_locals(rest[1], locals)]
+                locals.pop()
+                return ret_val
             else:
                 return [annotate_locals(first, locals), *[annotate_locals(r, locals) for r in rest]]
         case _:
@@ -857,5 +897,6 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((x 3)) (lambda (y) y))"))
     #print(scheme_parse("((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))"))
     #print(scheme_parse("(((lambda (x) x) ((lambda () 5)))(lambda (x) x) ((lambda () 5)))"))
-    print(scheme_parse("(quote 4)"))
-    print(scheme_parse("(quote #(4 #(5 7)  6))"))
+    #print(scheme_parse("(let ((g (lambda () 2)) (h (lambda () 4)) (f (lambda () 7))) ((lambda () (if (g) (let ((x (h))) x) (+ (g) (f))))))"))
+    print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
+    #print(scheme_parse("(quote #(4 #(5 7)  6))"))

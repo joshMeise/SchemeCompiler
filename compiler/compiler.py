@@ -170,6 +170,23 @@ class Compiler:
                         emit(I.END_LET)
                         emit(len(rest[0]))
                         self.stack_ind -= len(rest[0])
+                    case "let*":
+                        # Compile bindings.
+                        if len(self.bindings) == 0:
+                            self.bindings = [{}]
+                        else:
+                            self.bindings.append(self.bindings[-1].copy())
+                        for i, binding in enumerate(rest[0]):
+                            if binding[0] in self.bindings[-1]:
+                                self.bindings[-1][binding[0]] = self.stack_ind
+                            else:
+                                self.bindings[-1][binding[0]] = self.stack_ind
+                            self.compile(rest[0][i][1])
+                        self.compile(rest[1])
+                        self.bindings.pop()
+                        emit(I.END_LET)
+                        emit(len(rest[0]))
+                        self.stack_ind -= len(rest[0])
                     case "cons":
                         self.compile(rest[1])
                         self.compile(rest[0])
@@ -368,6 +385,7 @@ def get_len(expr) -> int:
                         length += (get_len(rest[1]) + get_len(rest[0]) + 1)
                     case "labels":
                         for element in rest[0]:
+                            ielf.stack_ind -= 1
                             length += get_len(element[1])
                         length += get_len(rest[1])
                     case "code":
@@ -537,7 +555,8 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", "x", "y"]])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", [], [], 3])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(['labels', [('f1', ['code', ['y'], ['x'], ['+', Free('x'), Bound('y')]])], [['let', [('x', 2)], ['closure', 'f1', 'x']], 4]])
-    compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
+    #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
     #compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
+    compiler.compile_function(["let*", [("a", 3), ("b", Local("a")), ("c", Local("a"))], Local("c")])
     print(compiler.code)
 
