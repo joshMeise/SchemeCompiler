@@ -162,4 +162,8 @@ private:
     void get_free(void);
 
     void set_frees(void);
+
+    void const_ref(void);
+
+    void const_init(void);
 };

@@ -87,7 +87,9 @@ enum class OpCode : uint64_t {
     RET = 39,
     CALL = 40,
     GET_FREE = 41,
-    SET_FREES = 42
+    SET_FREES = 42,
+    CONST_REF = 43,
+    CONST_INIT = 44
 };
 
 // Build insturction out of 4 bytes.
@@ -311,6 +313,14 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::SET_FREES:
                 // Set free variable alues in closure object.
                 set_frees();
+                break;
+            case OpCode::CONST_REF:
+                // Get heap location of referneced constant onto top of stack.
+                const_ref();
+                break;
+            case OpCode::CONST_INIT:
+                // Increment base pointer by 1.
+                const_init();
                 break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
@@ -999,3 +1009,14 @@ void Interpreter::set_frees(void) {
     for (i = 0; i < num_frees; i++)
         heap[closure_ptr + 1 + num_frees - i] = pop();
 }
+
+// Place heap address of imediate constant on top of stack.
+void Interpreter::const_ref(void) {
+    push(stack[read_word()]);
+}
+
+// Move base pointer up by 1.
+void Interpreter::const_init(void) {
+    base_ptr++;
+}
+

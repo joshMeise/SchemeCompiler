@@ -204,6 +204,12 @@ class Compiler:
                             emit(I.SET_FREES)
                             emit(self.labels.index(rest[0]))
                             emit(0)
+                    case "constant-ref":
+                        emit(I.CONST_REF)
+                        emit(self.labels.index(rest[0]))
+                    case "constant-init":
+                        self.compile(rest[1])
+                        emit(I.CONST_INIT)
                     case _:
                         for element in rest:
                             self.compile(element)
@@ -366,6 +372,11 @@ def get_len(expr) -> int:
                             for element in rest[1:]:
                                 length += get_len(element)
                         length += 3
+                    case "constant-ref":
+                        length += 2
+                    case "constant-init":
+                        for element in rest:
+                            length += get_len(element)
                     case _:
                         for element in rest:
                             length += get_len(element)
@@ -496,6 +507,8 @@ class I(enum.IntEnum):
     CALL = enum.auto()              # 0x28
     GET_FREE = enum.auto()          # 0x29
     SET_FREES = enum.auto()         # 0x2A
+    CONST_REF = enum.auto()         # 0x2B
+    CONST_INIT = enum.auto()        # 0x2C      # Will simply move base pointer up by one.
 
 if __name__ == "__main__":
     compiler = Compiler()
@@ -512,11 +525,12 @@ if __name__ == "__main__":
     #compiler.compile_function(['let', [('a', ['let', [('a', 5)], ['a']])], [['let', [('a', 6)], ['a']]]])
     #compiler.compile_function(['let', [('a', 4)], [['let', [('b', 1), ('a', ['let', [('a', 5)], ['b']])], [['let', [('a', 6)], ['a']]]]]])
     #compiler.compile_function(['let', [('a', 4)], ['+', 'a', 5]])
-    #compiler.compile_function(['+', 4, 5])
+    #compiler.compile_function(["labels", [("f2", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", ["y"], ["x"], ["closure", "f2", Free("x"), Bound("y")]])], ["let", [("x", 5)], ["closure", "f1", Local("x")]]])
     #compiler.compile_function(['begin', ['+', 4, 3]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", "x", "y"]])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", [], [], 3])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(['labels', [('f1', ['code', ['y'], ['x'], ['+', Free('x'), Bound('y')]])], [['let', [('x', 2)], ['closure', 'f1', 'x']], 4]])
-    compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
+    #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
+    compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
     print(compiler.code)
 

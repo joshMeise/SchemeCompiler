@@ -62,6 +62,8 @@ class Token(enum.IntEnum):
     VEC_APP = enum.auto()
     BEG = enum.auto()
     LAMBDA = enum.auto()
+    QUOTE = enum.auto()
+    VEC_LIT = enum.auto()
 
 class Parser:
     """
@@ -228,6 +230,9 @@ class Parser:
             case _ if t := re.match(r"lambda", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.LAMBDA
+            case _ if t := re.match(r"quote", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.QUOTE
             case _ if not re.match(r"[^(` \n\t\r1-9#\(\))][^(` \n\t\r\(\))]*", self.source[self.pos:]):
                 raise RuntimeError("Unrecognized token.")
             case _:
@@ -411,6 +416,8 @@ class Parser:
                 self.insert_func_name = False
                 ret = self.parse_args(num_args = -1)
                 ast = [ast] +ret
+            case Token.QUOTE:
+                ast = self.parse_quote()
             case _:
                 raise RuntimeError(f"Unexpected token {self.text}")
 
@@ -666,6 +673,40 @@ class Parser:
 
         return ast
 
+    def parse_quote(self):
+        # Insert and consume "quote".
+        ast = [self.text]
+        self.match()
+
+        # Parse argument to quote.
+        match self.get_token():
+            case Token.INT:
+                expr = self.parse_int()
+            case Token.CHAR:
+                expr = self.parse_char()
+            case Token.BOOL:
+                expr = self.parse_bool()
+            case _ if self.text[self.pos:] == "#":
+                print("HI")
+            case Token.OP:
+                expr = self.text
+                self.match()
+                i = 0
+                while t := self.get_token() != Token.CP:
+                    if i != 0:
+                        expr += " "
+                    expr += self.text
+                    self.match()
+                    i += 1
+                expr += self.text
+                self.match()
+            case _:
+                raise RuntimeError(f"Unexpected token {self.text}")
+
+        ast.append(expr)
+
+        return ast
+
 def get_closure_form(lambda_body, cur_count):
     return ["closure", f"f{cur_count}"] + lambda_body
 
@@ -814,5 +855,7 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((b 2)) (let ((a (lambda (y) (+ y b)))) (+ (a 1) (a 1))))"))
     #print(scheme_parse("(let ((a ((lambda () 4))) (b ((lambda () 3)))) (+ a b))"))
     #print(scheme_parse("(let ((x 3)) (lambda (y) y))"))
-    print(scheme_parse("((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))"))
+    #print(scheme_parse("((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))"))
     #print(scheme_parse("(((lambda (x) x) ((lambda () 5)))(lambda (x) x) ((lambda () 5)))"))
+    print(scheme_parse("(quote 4)"))
+    print(scheme_parse("(quote #(4 #(5 7)  6))"))
