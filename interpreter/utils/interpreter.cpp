@@ -89,7 +89,8 @@ enum class OpCode : uint64_t {
     GET_FREE = 41,
     SET_FREES = 42,
     CONST_REF = 43,
-    CONST_INIT = 44
+    CONST_INIT = 44,
+    TAIL_CALL = 45
 };
 
 // Build insturction out of 4 bytes.
@@ -321,6 +322,9 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::CONST_INIT:
                 // Increment base pointer by 1.
                 const_init();
+                break;
+            case OpCode::TAIL_CALL:
+                tail_call();
                 break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
@@ -1020,3 +1024,33 @@ void Interpreter::const_init(void) {
     base_ptr++;
 }
 
+void Interpreter::tail_call(void) {
+    uint64_t closure, num_args, code_loc;
+    std::vector<uint64_t> args;
+    int64_t i;
+
+    // Pop heap location of closure object off of stack.
+    closure = pop() >> CLOSURE_SHIFT;
+
+    // Get details for closure from heap location.
+    code_loc = heap[closure];
+    num_args = heap[closure + 1];
+
+    args = std::vector<uint64_t>(num_args);
+
+    // Pop arguments off of stack.
+    for (i = 0; i < (int64_t)num_args; i++)
+        args[i] = pop();
+
+    // Pop old arguments off of stack.
+    for (i = 0; i < (int64_t)num_args; i++)
+        pop();
+
+    // Push given numebr of arguments onto stack.
+    for (i = (int64_t)num_args - 1; i >= 0; i--)
+        push(args[i]);
+
+    // Update program counter to code's location.
+    pc = code_loc;
+
+}

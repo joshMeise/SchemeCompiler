@@ -166,4 +166,6 @@ private:
     void const_ref(void);
 
     void const_init(void);
+
+    void tail_call(void);
 };

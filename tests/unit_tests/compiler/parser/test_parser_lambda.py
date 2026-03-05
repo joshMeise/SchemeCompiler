@@ -118,7 +118,14 @@ class LambdaParseTests(unittest.TestCase):
         """
         self.assertEqual(self._parse("((lambda (x) x) ((lambda () 5)))"), ["labels", [("f0", ["code", ["x"], [], Bound("x")]), ("f2", ["code", [], [], 5])], [["closure", "f0"], [["closure", "f2"]]]])
 
-    def test_lambda_tail_called(self):
+    def test_lambda_factorial_regular(self):
+        """
+        Test ((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))
+        """
+        self.assertEqual(self._parse("((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))"), ["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
+
+
+    def test_lambda_factorial_tail_called(self):
         """
         Test ((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))
         """

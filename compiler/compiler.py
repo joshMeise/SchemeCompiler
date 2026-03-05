@@ -147,9 +147,11 @@ class Compiler:
                         emit(I.POP_JUMP_IF_FALSE)
                         emit(get_len(rest[1]) + 2)
                         self.compile(rest[1])
+                        self.check_tail()
                         emit(I.JUMP_OVER_ELSE)
                         emit(get_len(rest[2]))
                         self.compile(rest[2])
+                        self.check_tail()
                     case "let":
                         # Compile bindings.
                         if len(self.bindings) == 0:
@@ -216,6 +218,10 @@ class Compiler:
                         self.compile(first)
                         emit(I.CALL)
                         self.stack_ind -= len(rest)
+
+    def check_tail(self):
+        if self.code[-1] == I.CALL:
+            self.code[-1] = I.TAIL_CALL
 
     def compile_function(self, expr):
         """
@@ -508,7 +514,8 @@ class I(enum.IntEnum):
     GET_FREE = enum.auto()          # 0x29
     SET_FREES = enum.auto()         # 0x2A
     CONST_REF = enum.auto()         # 0x2B
-    CONST_INIT = enum.auto()        # 0x2C      # Will simply move base pointer up by one.
+    CONST_INIT = enum.auto()        # 0x2C
+    TAIL_CALL = enum.auto()         # 0x2D
 
 if __name__ == "__main__":
     compiler = Compiler()
@@ -530,7 +537,7 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", "x", "y"]])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(["labels", [("f0", ["code", [], ["x", "y"], ["+", Free("x"), Free("y")]]), ("f1", ["code", [], [], 3])], ["closure", "f0", "x", "y"]])
     #compiler.compile_function(['labels', [('f1', ['code', ['y'], ['x'], ['+', Free('x'), Bound('y')]])], [['let', [('x', 2)], ['closure', 'f1', 'x']], 4]])
-    #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
-    compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
+    compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
+    #compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
     print(compiler.code)
 
