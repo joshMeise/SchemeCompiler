@@ -38,8 +38,9 @@ CLOSURE_TAG = 6
 CLOSURE_MASK = 7
 
 UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "car", "cdr"]
-BINARY_OPS = ["+", "*", "-", "<", ">", "<=", ">=", "=", "string-ref", "string-append", "vector-ref", "vector-append"]
+BINARY_OPS = ["*", "-", "<", ">", "<=", ">=", "=", "string-ref", "string-append", "vector-ref", "vector-append"]
 TERNARY_OPS = ["string-set!", "vector-set!"]
+VARIADIC_OPS = ["+"]
 
 class Compiler:
     """
@@ -120,6 +121,12 @@ class Compiler:
             # Compilation of an expression.
             case [first, *rest]:
                 match first:
+                    case w if w in VARIADIC_OPS:
+                        self.compile(rest[0])
+                        for i in range(len(rest[1:])):
+                            self.compile(rest[1 + i])
+                            self.emit_symbol(w)
+                            self.stack_ind -= 1
                     case w if w in BINARY_OPS:
                         self.compile(rest[0])
                         self.compile(rest[1])
@@ -382,6 +389,10 @@ def get_len(expr) -> int:
             # Compilation of an expression.
             case [first, *rest]:
                 match first:
+                    case w if w in VARIADIC_OPS:
+                        length += get_len(rest[0])
+                        for i in range(len(rest[1:])):
+                            length += (get_len(rest[1 + i]) + 1)
                     case w if w in BINARY_OPS:
                         length += (get_len(rest[0]) + get_len(rest[1]) + 1)
                     case w if w in UNARY_OPS:
@@ -579,6 +590,6 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
     #compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
     #compiler.compile_function(["let*", [("a", 3), ("b", Local("a")), ("c", Local("a"))], Local("c")])
-
+    compiler.compile_function(["+", 4, 3, 5])
     print(compiler.code)
 

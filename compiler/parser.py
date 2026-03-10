@@ -413,11 +413,11 @@ class Parser:
         match t := self.get_token():
             case _ if t in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
                 ast = self.parse_args(num_args = 1)
-            case _ if t in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP, Token.AND, Token.OR]:
+            case _ if t in [Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP, Token.AND, Token.OR]:
                 ast = self.parse_args(num_args = 2)
             case _ if t in [Token.IF, Token.STR_SET, Token.VEC_SET]:
                 ast = self.parse_args(num_args = 3)
-            case _ if t in [Token.VEC, Token.BEG]:
+            case _ if t in [Token.VEC, Token.BEG, Token.PLUS]:
                 ast = self.parse_args(num_args = -1)
             case _ if t == Token.VEC_LIT and self.in_quote:
                 self.match()
