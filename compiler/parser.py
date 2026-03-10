@@ -17,7 +17,7 @@ from collections import OrderedDict
 from .utils import *
 
 WSP = ['\n', '\r', '\t', ' ']
-BUILTINS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "+", "-", "*", "<", ">", "<=", ">=", "=", "let", "if", "cons", "car", "cdr", "string-ref", "string-set!", "string-append", "string", "vector-ref", "vector-set!", "vector-append", "vector", "begin", "lambda", ]
+BUILTINS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "+", "-", "*", "<", ">", "<=", ">=", "=", "let", "if", "cons", "car", "cdr", "string-ref", "string-set!", "string-append", "string", "vector-ref", "vector-set!", "vector-append", "vector", "begin", "lambda", "quote"]
 
 class Token(enum.IntEnum):
     """
@@ -97,6 +97,7 @@ class Parser:
         self.bound_vars = []
         self.free_vars = []
         self.in_let_star_rec = False
+        self.in_quote = False
 
     def get_token(self) -> Token:
         """
@@ -239,6 +240,9 @@ class Parser:
             case _ if t := re.match(r"lambda", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.LAMBDA
+            case _ if t := re.match(r"#\(", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.VEC_LIT
             case _ if t := re.match(r"quote", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.QUOTE
@@ -395,17 +399,29 @@ class Parser:
         self.insert_func_name = True
 
         # Consume opening parenthesis.
-        self.match()
+        if not self.in_quote:
+            self.match()
 
-        match self.get_token():
-            case _ if self.get_token() in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
+        match t := self.get_token():
+            case _ if t in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
                 ast = self.parse_args(num_args = 1)
-            case _ if self.get_token() in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
+            case _ if t in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
                 ast = self.parse_args(num_args = 2)
-            case _ if self.get_token() in [Token.IF, Token.STR_SET, Token.VEC_SET]:
+            case _ if t in [Token.IF, Token.STR_SET, Token.VEC_SET]:
                 ast = self.parse_args(num_args = 3)
-            case _ if self.get_token() in [Token.VEC, Token.BEG]:
+            case _ if t in [Token.VEC, Token.BEG]:
                 ast = self.parse_args(num_args = -1)
+            case _ if t == Token.VEC_LIT and self.in_quote:
+                self.match()
+                ast = ["vector"]
+                self.insert_func_name = False
+                ast += self.parse_args(num_args = -1)
+                self.insert_func_name = True
+                if self.get_token() != Token.CP:
+                    raise RuntimeError(f"Unexpected token {self.text}")
+                self.match()
+            case _ if t == Token.OP and self.in_quote:
+                ast = self.parse_symbol()
             case Token.LET:
                 ast = self.parse_let()
             case Token.LETSTAR | Token.LETREC:
@@ -423,21 +439,24 @@ class Parser:
                 self.insert_func_name = False
                 ret = self.parse_args(num_args = -1)
                 ast = [ast] + ret
-            case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and self.get_token() == Token.ID:
+            case Token.QUOTE:
+                ast = self.parse_quote()
+            case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and t == Token.ID:
                 ast = self.text
                 self.match()
                 self.insert_func_name = False
                 ret = self.parse_args(num_args = -1)
                 ast = [ast] +ret
-            case Token.QUOTE:
-                ast = self.parse_quote()
+            case _ if self.in_quote:
+                ast = self.parse_symbol()
             case _:
                 raise RuntimeError(f"Unexpected token {self.text}")
 
         # Consume closing parenthesis.
-        if self.get_token() != Token.CP:
-            raise RuntimeError(f"Unexpected token {self.text}")
-        self.match()
+        if not self.in_quote:
+            if self.get_token() != Token.CP:
+                raise RuntimeError(f"Unexpected token {self.text}")
+            self.match()
 
         return ast
 
@@ -464,7 +483,7 @@ class Parser:
         # Parse arguments.
         n = 0
         while (num_args == -1 or n < num_args) and self.get_token() != Token.CP:
-            match self.get_token():
+            match t:= self.get_token():
                 case Token.INT:
                     ast.append(self.parse_int())
                 case Token.CHAR:
@@ -472,6 +491,8 @@ class Parser:
                 case Token.BOOL:
                     ast.append(self.parse_bool())
                 case Token.OP:
+                    ast.append(self.parse_expr())
+                case _ if self.in_quote:
                     ast.append(self.parse_expr())
                 case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and self.get_token() == Token.ID:
                     ast.append(self.text)
@@ -512,6 +533,27 @@ class Parser:
         # Consume string.
         self.match()
 
+        return ast
+
+    def parse_symbol(self) -> list:
+        ast = ["symbol"]
+        expr = self.text
+        self.match()
+
+        if expr[0] == '(':
+            num_p = 0
+            while (t := self.get_token()) != Token.CP or num_p != 0:
+                if t == Token.OP:
+                    num_p += 1
+                elif t == Token.CP:
+                    num_p -= 1
+                expr += self.text
+                self.match()
+
+            expr += ')'
+            self.match()
+        
+        ast += expr
         return ast
 
     def parse_let(self) -> list:
@@ -693,6 +735,7 @@ class Parser:
         # Insert and consume "quote".
         ast = [self.text]
         self.match()
+        self.in_quote = True
 
         # Parse argument to quote.
         match self.get_token():
@@ -702,22 +745,12 @@ class Parser:
                 expr = self.parse_char()
             case Token.BOOL:
                 expr = self.parse_bool()
-            case Token.OP:
-                expr = self.text
-                self.match()
-                i = 0
-                while t := self.get_token() != Token.CP:
-                    if i != 0:
-                        expr += " "
-                    expr += self.text
-                    self.match()
-                    i += 1
-                expr += self.text
-                self.match()
             case _:
-                raise RuntimeError(f"Unexpected token {self.text}")
+                expr = self.parse_expr()
 
         ast.append(expr)
+
+        self.in_quote = False
 
         return ast
 
@@ -732,6 +765,9 @@ def convert_to_closure_helper(ast: list, labels, cur_count, new_ast = []) -> lis
             if first == "lambda":
                 labels[f"f{cur_count}"] = [rest[0], rest[1], convert_to_closure_helper(rest[2], labels, cur_count + 1)]
                 return get_closure_form(rest[1], cur_count)
+            elif first == "quote":
+                labels[f"t{cur_count}"] = ["constant-init", rest[0]]
+                return ["constant-ref", f"t{cur_count}"]
             elif first == "let" or first == "let*":
                 ret_val = [first]
                 bindings = []
@@ -761,11 +797,17 @@ def convert_to_closure(ast: list) -> list:
 
     if len(labels) != 0:
         for name, code in labels.items():
-            code[2] = annotate_free_vars(code[1], code[2])
-            code[2] = annotate_bound_vars(code[0], code[2])
-        labels = [(name, ["code"] + code) for name, code in labels.items()]
+            if name[0] == "f":
+                code[2] = annotate_free_vars(code[1], code[2])
+                code[2] = annotate_bound_vars(code[0], code[2])
+        new_labels = []
+        for name, code in labels.items():
+            if name[0] == "f":
+                new_labels.append((name, ["code"] + code))
+            elif name[0] == "t":
+                new_labels.append((name, code))
         body = annotate_locals(body, [])
-        return ["labels", labels] + [body]
+        return ["labels", new_labels] + [body]
     else:
         ast = annotate_locals(ast, [])
         return ast
@@ -898,5 +940,6 @@ if __name__ == "__main__":
     #print(scheme_parse("((lambda (fact) (fact fact 5 1)) (lambda (self n acc) (if (= n 0) acc (self self (- n 1) (* acc n)))))"))
     #print(scheme_parse("(((lambda (x) x) ((lambda () 5)))(lambda (x) x) ((lambda () 5)))"))
     #print(scheme_parse("(let ((g (lambda () 2)) (h (lambda () 4)) (f (lambda () 7))) ((lambda () (if (g) (let ((x (h))) x) (+ (g) (f))))))"))
-    print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
-    #print(scheme_parse("(quote #(4 #(5 7)  6))"))
+    #print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
+    #print(scheme_parse("(let ((f (lambda () (quote #(4 6))))) (= (f) (f)))"))
+    print(scheme_parse("(quote #(3 2))"))
