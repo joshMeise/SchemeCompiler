@@ -152,6 +152,12 @@ class Compiler:
                         emit(get_len(rest[2]))
                         self.compile(rest[2])
                         self.check_tail()
+                    case "and":
+                        self.compile(rest[0])
+                        emit(I.JUMP_IF_FALSE)
+                        emit(get_len(rest[1]) + 1)
+                        emit(I.POP)
+                        self.compile(rest[1])
                     case "let":
                         # Compile bindings.
                         if len(self.bindings) == 0:
@@ -540,6 +546,8 @@ class I(enum.IntEnum):
     CONST_INIT = enum.auto()        # 0x2C
     TAIL_CALL = enum.auto()         # 0x2D
     SYMBOL = enum.auto()            # 0x2E
+    JUMP_IF_FALSE = enum.auto()     # 0x2F
+    POP = enum.auto()               # 0x30
 
 if __name__ == "__main__":
     compiler = Compiler()
