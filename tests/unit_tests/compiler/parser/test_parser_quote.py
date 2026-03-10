@@ -64,6 +64,11 @@ class QuoteParseTests(unittest.TestCase):
         """
         self.assertEqual(self._parse("(lambda () (quote #(1 2)))"), ["labels", [("t1", ["constant-init", ["vector", 1, 2]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["closure", "f0"]])
 
+    def test_quote_lambda_with_vector(self):
+        """
+        Test (let ((f (lambda () (quote #(1 4))))) (= (f) (f))).
+        """
+        self.assertEqual(self._parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"), ["labels", [("t1", ["constant-init", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
 
 
 if __name__ == '__main__':

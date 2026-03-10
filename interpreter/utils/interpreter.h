@@ -168,4 +168,6 @@ private:
     void const_init(void);
 
     void tail_call(void);
+
+    void symbol(void);
 };

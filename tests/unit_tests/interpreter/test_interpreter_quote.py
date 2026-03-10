@@ -1,7 +1,7 @@
-# test_interpreter_complex_constants.py - tests interpreting of complex constants
+# test_interpreter_quote.py - tests interpreting of complex constants
 #
 # Josh Meise
-# 03-04-2026
+# 03-10-2026
 # Description:
 #
 #
@@ -34,7 +34,13 @@ class ComplexConstantsInterpreterTests(unittest.TestCase):
 
         return stdout.decode("utf-8")
 
-    def test_complex_constant_1(self):
+    def test_quote_one_symbol_1(self):
+        """
+        Test (quote a).
+        """
+        self.assertEqual(self._interpret(b"\x2E\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x61\x00\x00\x00\x00\x00\x00\x00\x2C\x00\x00\x00\x00\x00\x00\x00\x2B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00"), "a\n")
+
+    def test_quote_vector_in_lambda(self):
         """
         Test (let ((f (lambda () (quote #(1 4))))) (= (f) (f))).
         """

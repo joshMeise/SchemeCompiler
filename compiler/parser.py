@@ -17,7 +17,7 @@ from collections import OrderedDict
 from .utils import *
 
 WSP = ['\n', '\r', '\t', ' ']
-BUILTINS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "+", "-", "*", "<", ">", "<=", ">=", "=", "let", "if", "cons", "car", "cdr", "string-ref", "string-set!", "string-append", "string", "vector-ref", "vector-set!", "vector-append", "vector", "begin", "lambda", "quote"]
+BUILTINS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "+", "-", "*", "<", ">", "<=", ">=", "=", "let", "if", "cons", "car", "cdr", "string-ref", "string-set!", "string-append", "string", "vector-ref", "vector-set!", "vector-append", "vector", "begin", "lambda", "quote", "letrec", "let*", "and", "or"]
 
 class Token(enum.IntEnum):
     """
@@ -66,6 +66,8 @@ class Token(enum.IntEnum):
     VEC_LIT = enum.auto()
     LETREC = enum.auto()
     LETSTAR = enum.auto()
+    AND = enum.auto()
+    OR = enum.auto()
 
 class Parser:
     """
@@ -246,6 +248,12 @@ class Parser:
             case _ if t := re.match(r"quote", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.QUOTE
+            case _ if t := re.match(r"and", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.AND
+            case _ if t := re.match(r"or", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.OR
             case _ if not re.match(r"[^(` \n\t\r1-9#\(\))][^(` \n\t\r\(\))]*", self.source[self.pos:]):
                 raise RuntimeError("Unrecognized token.")
             case _:
@@ -405,7 +413,7 @@ class Parser:
         match t := self.get_token():
             case _ if t in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
                 ast = self.parse_args(num_args = 1)
-            case _ if t in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
+            case _ if t in [Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP, Token.AND, Token.OR]:
                 ast = self.parse_args(num_args = 2)
             case _ if t in [Token.IF, Token.STR_SET, Token.VEC_SET]:
                 ast = self.parse_args(num_args = 3)
@@ -942,4 +950,4 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((g (lambda () 2)) (h (lambda () 4)) (f (lambda () 7))) ((lambda () (if (g) (let ((x (h))) x) (+ (g) (f))))))"))
     #print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(4 6))))) (= (f) (f)))"))
-    print(scheme_parse("(quote #(3 2))"))
+    print(scheme_parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"))

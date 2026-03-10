@@ -227,8 +227,13 @@ class Compiler:
                         emit(I.CONST_REF)
                         emit(self.labels.index(rest[0]))
                     case "constant-init":
-                        self.compile(rest[1])
+                        self.compile(rest[0])
                         emit(I.CONST_INIT)
+                    case "symbol":
+                        emit(I.SYMBOL)
+                        emit(len(rest))
+                        for c in rest:
+                            emit(ord(c))
                     case _:
                         for element in rest:
                             self.compile(element)
@@ -534,6 +539,7 @@ class I(enum.IntEnum):
     CONST_REF = enum.auto()         # 0x2B
     CONST_INIT = enum.auto()        # 0x2C
     TAIL_CALL = enum.auto()         # 0x2D
+    SYMBOL = enum.auto()            # 0x2E
 
 if __name__ == "__main__":
     compiler = Compiler()
@@ -557,6 +563,7 @@ if __name__ == "__main__":
     #compiler.compile_function(['labels', [('f1', ['code', ['y'], ['x'], ['+', Free('x'), Bound('y')]])], [['let', [('x', 2)], ['closure', 'f1', 'x']], 4]])
     #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
     #compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
-    compiler.compile_function(["let*", [("a", 3), ("b", Local("a")), ("c", Local("a"))], Local("c")])
+    #compiler.compile_function(["let*", [("a", 3), ("b", Local("a")), ("c", Local("a"))], Local("c")])
+
     print(compiler.code)
 

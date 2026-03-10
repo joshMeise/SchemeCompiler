@@ -41,6 +41,9 @@
 #define CLOSURE_SHIFT 3
 #define CLOSURE_MASK 7
 #define CLOSURE_TAG 6
+#define SYMBOL_SHIFT 3
+#define SYMBOL_TAG 5
+#define SYMBOL_MASK 7
 
 #define CLOSURE_LEN 2
 
@@ -90,7 +93,8 @@ enum class OpCode : uint64_t {
     SET_FREES = 42,
     CONST_REF = 43,
     CONST_INIT = 44,
-    TAIL_CALL = 45
+    TAIL_CALL = 45,
+    SYMBOL = 46
 };
 
 // Build insturction out of 4 bytes.
@@ -326,6 +330,9 @@ uint64_t Interpreter::interpret(void) {
             case OpCode::TAIL_CALL:
                 tail_call();
                 break;
+            case OpCode::SYMBOL:
+                symbol();
+                break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
                 break;
@@ -373,6 +380,10 @@ void Interpreter::print_val(uint64_t val, std::ostream*& output) {
     }
     else if ((val & CLOSURE_MASK) == CLOSURE_TAG)
         *output << "function";
+    else if ((val & SYMBOL_MASK) == SYMBOL_TAG) {
+        for (i = 1; i <= heap[(val >> SYMBOL_SHIFT)]; i++)
+            *output << (char)heap[(val >> SYMBOL_SHIFT) + i];
+    }
     else
         throw std::runtime_error("Invlaid type.\n");
 
@@ -1052,5 +1063,22 @@ void Interpreter::tail_call(void) {
 
     // Update program counter to code's location.
     pc = code_loc;
+}
 
+void Interpreter::symbol(void) {
+    uint64_t len, i;
+
+    // Read in number of characters in symbol.
+    len = read_word();
+
+    // Push the current heap location onto stack.
+    push(((heap_ptr << SYMBOL_SHIFT) & ~SYMBOL_MASK) | SYMBOL_TAG);
+
+    // Place length on heap.
+    heap.push_back(len);
+
+    for (i = 1; i <= len; i++)
+        heap.push_back(read_word());
+
+    heap_ptr += (len + 1);
 }
