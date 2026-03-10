@@ -449,7 +449,7 @@ class Parser:
                 ast = [ast] + ret
             case Token.QUOTE:
                 ast = self.parse_quote()
-            case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and t == Token.ID:
+            case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and t == Token.ID and not self.in_quote:
                 ast = self.text
                 self.match()
                 self.insert_func_name = False
@@ -827,8 +827,9 @@ def get_free_vars_helper(bound_vars, expr, free_vars):
         case [only]:
             get_free_vars_helper(bound_vars, only, free_vars)
         case [first, *rest]:
-            get_free_vars_helper(bound_vars, first, free_vars)
-            get_free_vars_helper(bound_vars, rest, free_vars)
+            if first != "quote":
+                get_free_vars_helper(bound_vars, first, free_vars)
+                get_free_vars_helper(bound_vars, rest, free_vars)
 
 def get_free_vars(bound_vars, expr):
     free_vars = []
@@ -950,4 +951,5 @@ if __name__ == "__main__":
     #print(scheme_parse("(let ((g (lambda () 2)) (h (lambda () 4)) (f (lambda () 7))) ((lambda () (if (g) (let ((x (h))) x) (+ (g) (f))))))"))
     #print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(4 6))))) (= (f) (f)))"))
-    print(scheme_parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"))
+    #print(scheme_parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"))
+    print(scheme_parse("((lambda () (quote a)))"))
