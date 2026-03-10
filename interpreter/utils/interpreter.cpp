@@ -96,7 +96,8 @@ enum class OpCode : uint64_t {
     TAIL_CALL = 45,
     SYMBOL = 46,
     JUMP_IF_FALSE = 47,
-    POP = 48
+    POP = 48,
+    JUMP_IF_TRUE = 49
 };
 
 // Build insturction out of 4 bytes.
@@ -340,6 +341,9 @@ uint64_t Interpreter::interpret(void) {
                 break;
             case OpCode::POP:
                 pop();
+                break;
+            case OpCode::JUMP_IF_TRUE:
+                jump_if_true();
                 break;
             default:
                 throw std::runtime_error("Opcode not yet implemented.\n");
@@ -1096,8 +1100,18 @@ void Interpreter::jump_if_false(void) {
 
     val = stack[stack_ptr - 1];
 
-    // If false on top of stack, jump over consequent; else just mvoe past offset.
+    // If false on top of stack, jump.
     if (((val & BOOL_MASK) == BOOL_TAG) && (val >> BOOL_SHIFT == 0)) pc += read_word();
+    else pc += 1;
+}
+
+void Interpreter::jump_if_true(void) {
+    uint64_t val;
+
+    val = stack[stack_ptr - 1];
+
+    // If true on top of stack, jump.
+    if (!(((val & BOOL_MASK) == BOOL_TAG) && (val >> BOOL_SHIFT == 0))) pc += read_word();
     else pc += 1;
 }
 

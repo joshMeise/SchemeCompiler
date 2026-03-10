@@ -172,4 +172,6 @@ private:
     void symbol(void);
 
     void jump_if_false(void);
+
+    void jump_if_true(void);
 };
