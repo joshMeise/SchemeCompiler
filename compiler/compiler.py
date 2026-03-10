@@ -84,6 +84,10 @@ class Compiler:
                 self.stack_ind += 1
                 emit(I.VEC)
                 emit(0)
+            case ["+"]:
+                self.stack_ind += 2
+                emit(I.LOAD64)
+                emit(box_fixnum(0))
             case bool(_):
                 self.stack_ind += 1
                 emit(I.LOAD64)
@@ -590,6 +594,6 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
     #compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
     #compiler.compile_function(["let*", [("a", 3), ("b", Local("a")), ("c", Local("a"))], Local("c")])
-    compiler.compile_function(["+", 4, 3, 5])
+    compiler.compile_function(["+"])
     print(compiler.code)
 
