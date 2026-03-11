@@ -68,6 +68,7 @@ class Token(enum.IntEnum):
     LETSTAR = enum.auto()
     AND = enum.auto()
     OR = enum.auto()
+    STR_LIT = enum.auto()
 
 class Parser:
     """
@@ -245,7 +246,10 @@ class Parser:
             case _ if t := re.match(r"#\(", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.VEC_LIT
-            case _ if t := re.match(r"quote", self.source[self.pos:]):
+            case _ if t := re.match(r"\"", self.source[self.pos:]):
+                self.text = t.group(0)
+                return Token.STR_LIT
+            case _ if t := re.match(r"quote|'|`", self.source[self.pos:]):
                 self.text = t.group(0)
                 return Token.QUOTE
             case _ if t := re.match(r"and", self.source[self.pos:]):
@@ -331,6 +335,8 @@ class Parser:
                 ast = self.parse_bool()
             case Token.OP:
                 ast = self.parse_expr()
+            case Token.QUOTE:
+                ast = self.parse_quote()
             case _:
                 raise RuntimeError(f"Unexpected token {self.text}.")
 
@@ -428,6 +434,11 @@ class Parser:
                 if self.get_token() != Token.CP:
                     raise RuntimeError(f"Unexpected token {self.text}")
                 self.match()
+            case _ if t == Token.STR_LIT and self.in_quote:
+                self.insert_func_name = False
+                ast = ["string"]
+                ast += self.parse_string()
+                self.insert_func_name = True
             case _ if t == Token.OP and self.in_quote:
                 ast = self.parse_symbol()
             case Token.LET:
@@ -500,6 +511,8 @@ class Parser:
                     ast.append(self.parse_bool())
                 case Token.OP:
                     ast.append(self.parse_expr())
+                case Token.QUOTE:
+                    ast.append(self.parse_quote())
                 case _ if self.in_quote:
                     ast.append(self.parse_expr())
                 case _ if (self.in_let or self.in_lambda or self.in_let_star_rec) and self.get_token() == Token.ID:
@@ -527,10 +540,11 @@ class Parser:
             RuntimeError: Unexpected token received.
         """
         # Insert function name.
-        ast = [self.text]
-
-        # Consume function name.
-        self.match()
+        if self.insert_func_name:
+            ast = [self.text]
+            self.match()
+        else:
+            ast = []
 
         # Get string literal from source.
         self.get_string()
@@ -741,7 +755,7 @@ class Parser:
 
     def parse_quote(self):
         # Insert and consume "quote".
-        ast = [self.text]
+        ast = ["quote"]
         self.match()
         self.in_quote = True
 
@@ -952,4 +966,4 @@ if __name__ == "__main__":
     #print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(4 6))))) (= (f) (f)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"))
-    print(scheme_parse("((lambda () (quote a)))"))
+    print(scheme_parse("'a"))
