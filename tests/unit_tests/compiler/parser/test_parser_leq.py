@@ -28,20 +28,6 @@ class LEQParseTests(unittest.TestCase):
         """
         return scheme_parse(source)
 
-    def test_leq_zero_args(self):
-        """
-        Test (<=).
-        """
-        with self.assertRaises(RuntimeError):
-            self._parse("(<=)")
-
-    def test_leq_one_arg(self):
-        """
-        Test (<= 1).
-        """
-        with self.assertRaises(RuntimeError):
-            self._parse("(<= 1)")
-
     def test_leq_two_args(self):
         """
         Test (<= 1 2).
@@ -61,13 +47,6 @@ class LEQParseTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self._parse("(<= 1 2)a")
 
-    def test_leq_three_args(self):
-        """
-        Tests (<= 1 2 3)..
-        """
-        with self.assertRaises(RuntimeError):
-            self._parse("(<= 1 2 3)")
-
     def test_leq_first_nested(self):
         """
         Tests (<= (<= 1 2) 3).
@@ -85,27 +64,6 @@ class LEQParseTests(unittest.TestCase):
         Tests (<= (<= 1 2) (<= 3 4)).
         """
         self.assertEqual(self._parse("(<= (<= 1 2) (<= 3 4))"), ["<=", ["<=", 1, 2], ["<=", 3, 4]])
-
-    def test_leq_both_nested_three_args(self):
-        """
-        Tests (<= (<= 1 2) (<= 3 4) 5).
-        """
-        with self.assertRaises(RuntimeError):
-            self._parse("(<= (<= 1 2) (<= 3 4) 5)")
-
-    def test_leq_first_nested_three_args(self):
-        """
-        Tests (<= (<= 1 2) 3 5).
-        """
-        with self.assertRaises(RuntimeError):
-            self._parse("(<= (<= 1 2) 3 5)")
-
-    def test_leq_second_nested_three_args(self):
-        """
-        Tests (<= 1 (<= 2 3) 5).
-        """
-        with self.assertRaises(RuntimeError):
-            self._parse("(<= 1 (<= 2 3) 5)")
 
     def test_leq_no_closing_parens(self):
         """

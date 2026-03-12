@@ -419,11 +419,11 @@ class Parser:
         match t := self.get_token():
             case _ if t in [Token.ADD1, Token.SUB1, Token.INT_TO_CHAR, Token.CHAR_TO_INT, Token.IS_NULL, Token.IS_ZERO, Token.NOT, Token.IS_INT, Token.IS_BOOL, Token.CAR, Token.CDR]:
                 ast = self.parse_args(num_args = 1)
-            case _ if t in [Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP, Token.AND, Token.OR]:
+            case _ if t in [Token.CONS, Token.STR_REF, Token.STR_APP, Token.VEC_REF, Token.VEC_APP]:
                 ast = self.parse_args(num_args = 2)
             case _ if t in [Token.IF, Token.STR_SET, Token.VEC_SET]:
                 ast = self.parse_args(num_args = 3)
-            case _ if t in [Token.VEC, Token.BEG, Token.PLUS]:
+            case _ if t in [Token.VEC, Token.BEG, Token.PLUS, Token.MINUS, Token.TIMES, Token.LT, Token.GT, Token.LEQ, Token.GEQ, Token.EQ, Token.AND, Token.OR]:
                 ast = self.parse_args(num_args = -1)
             case _ if t == Token.VEC_LIT and self.in_quote:
                 self.match()
@@ -966,4 +966,4 @@ if __name__ == "__main__":
     #print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(4 6))))) (= (f) (f)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"))
-    print(scheme_parse("'a"))
+    print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))

@@ -38,9 +38,9 @@ CLOSURE_TAG = 6
 CLOSURE_MASK = 7
 
 UNARY_OPS = ["add1", "sub1", "integer->char", "char->integer", "null?", "zero?", "not", "integer?", "boolean?", "car", "cdr"]
-BINARY_OPS = ["*", "-", "<", ">", "<=", ">=", "=", "string-ref", "string-append", "vector-ref", "vector-append"]
+BINARY_OPS = ["string-ref", "string-append", "vector-ref", "vector-append"]
 TERNARY_OPS = ["string-set!", "vector-set!"]
-VARIADIC_OPS = ["+"]
+VARIADIC_OPS = ["+", "*", "-", "<", "<=", ">", ">=", "="]
 
 class Compiler:
     """
@@ -84,10 +84,18 @@ class Compiler:
                 self.stack_ind += 1
                 emit(I.VEC)
                 emit(0)
-            case ["+"]:
+            case ["+"] | ["-"] | ["*"] | ["<"] | ["<="] | [">"] | [">="] | ["="]:
                 self.stack_ind += 2
                 emit(I.LOAD64)
                 emit(box_fixnum(0))
+            case ["and"]:
+                self.stack_ind += 2
+                emit(I.LOAD64)
+                emit(box_bool(True))
+            case ["or"]:
+                self.stack_ind += 2
+                emit(I.LOAD64)
+                emit(box_bool(False))
             case bool(_):
                 self.stack_ind += 1
                 emit(I.LOAD64)
@@ -165,16 +173,24 @@ class Compiler:
                         self.check_tail()
                     case "and":
                         self.compile(rest[0])
-                        emit(I.JUMP_IF_FALSE)
-                        emit(get_len(rest[1]) + 1)
-                        emit(I.POP)
-                        self.compile(rest[1])
+                        for i, element in enumerate(rest[1:]):
+                            emit(I.JUMP_IF_FALSE)
+                            length = 0
+                            for el in rest[1 + i:]:
+                                length += (get_len(el) + 1)
+                                emit(length)
+                                emit(I.POP)
+                                self.compile(element)
                     case "or":
                         self.compile(rest[0])
-                        emit(I.JUMP_IF_TRUE)
-                        emit(get_len(rest[1]) + 1)
-                        emit(I.POP)
-                        self.compile(rest[1])
+                        for i, element in enumerate(rest[1:]):
+                            emit(I.JUMP_IF_TRUE)
+                            length = 0
+                            for el in rest[1 + i:]:
+                                length += (get_len(el) + 1)
+                                emit(length)
+                                emit(I.POP)
+                                self.compile(element)
                     case "let":
                         # Compile bindings.
                         if len(self.bindings) == 0:
@@ -594,6 +610,6 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
     #compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
     #compiler.compile_function(["let*", [("a", 3), ("b", Local("a")), ("c", Local("a"))], Local("c")])
-    compiler.compile_function(["+"])
+    compiler.compile_function(['labels', [('f1', ['code', [], ['b'], [Free("b")]]), ('f2', ['code', [], [], 4])], ['letrec', [('a', ['closure', 'f1', Local("b")]), ('b', ['closure', 'f2'])], ['+', [Local("b")], [Local("b")]]]])
     print(compiler.code)
 
