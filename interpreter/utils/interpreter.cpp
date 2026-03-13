@@ -146,6 +146,7 @@ uint64_t Interpreter::interpret(void) {
     uint64_t word, val;
 
     do {
+
         // Read instruction.
         word = read_word();
 
@@ -929,7 +930,7 @@ void Interpreter::code_label(void) {
     heap.resize(heap.size() + num_frees);
 
     // Place heap pointer onto bottom of stack and advance base pointer.
-    push(heap_ptr);
+    push(((heap_ptr << CLOSURE_SHIFT) & ~CLOSURE_MASK) | CLOSURE_TAG);
     base_ptr++;
 
     // Advance heap pointer.
@@ -945,7 +946,7 @@ void Interpreter::closure(void) {
     // Figure out heap address of label.
     addr = stack[read_word()];
 
-    push(((addr << CLOSURE_SHIFT) & ~CLOSURE_MASK) | CLOSURE_TAG);
+    push(addr);
 
 }
 
@@ -1017,7 +1018,7 @@ void Interpreter::get_free(void) {
     uint64_t closure_ptr;
 
     // Find out which closure to get free from.
-    closure_ptr = stack[read_word()];
+    closure_ptr = stack[read_word()] >> CLOSURE_SHIFT;
 
     // Place free onto stack.
     push(heap[closure_ptr + 2 + read_word()]);
@@ -1027,7 +1028,7 @@ void Interpreter::set_frees(void) {
     uint64_t num_frees, i, closure_ptr;
 
     // Find out which closure to read from.
-    closure_ptr = stack[read_word()];
+    closure_ptr = stack[read_word()] >> CLOSURE_SHIFT;
 
     // Check how many free variables there are.
     num_frees = read_word();

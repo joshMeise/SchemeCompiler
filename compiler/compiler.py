@@ -199,10 +199,7 @@ class Compiler:
                             self.bindings.append(self.bindings[-1].copy())
                         for i, binding in enumerate(rest[0]):
                             self.compile(rest[0][i][1])
-                            if binding[0] in self.bindings[-1]:
-                                self.bindings[-1][binding[0]] = self.stack_ind - 1
-                            else:
-                                self.bindings[-1][binding[0]] = self.stack_ind - 1
+                            self.bindings[-1][binding[0]] = self.stack_ind - 1
 
                         self.compile(rest[1])
                         self.bindings.pop()
@@ -216,10 +213,23 @@ class Compiler:
                         else:
                             self.bindings.append(self.bindings[-1].copy())
                         for i, binding in enumerate(rest[0]):
-                            if binding[0] in self.bindings[-1]:
-                                self.bindings[-1][binding[0]] = self.stack_ind
-                            else:
-                                self.bindings[-1][binding[0]] = self.stack_ind
+                            self.bindings[-1][binding[0]] = self.stack_ind
+                            self.compile(rest[0][i][1])
+                        self.compile(rest[1])
+                        self.bindings.pop()
+                        emit(I.END_LET)
+                        emit(len(rest[0]))
+                        self.stack_ind -= len(rest[0])
+                    case "letrec":
+                        # Compile bindings.
+                        if len(self.bindings) == 0:
+                            self.bindings = [{}]
+                        else:
+                            self.bindings.append(self.bindings[-1].copy())
+                        for i, binding in enumerate(rest[0]):
+                            self.bindings[-1][binding[0]] = self.stack_ind
+                            self.stack_ind += 1
+                        for i, binding in enumerate(rest[0]):
                             self.compile(rest[0][i][1])
                         self.compile(rest[1])
                         self.bindings.pop()
@@ -610,6 +620,7 @@ if __name__ == "__main__":
     #compiler.compile_function(["labels", [("f0", ["code", ["fact"], [], [Bound("fact"), Bound("fact"), 5, 1]]), ("f1", ["code", ["self", "n", "acc"], [], ["if", ["=", Bound("n"), 0], Bound("acc"), [Bound("self"), Bound("self"), ["-", Bound("n"), 1], ["*", Bound("acc"), Bound("n")]]]])], [["closure", "f0"], ["closure", "f1"]]])
     #compiler.compile_function(["labels", [("t1", ["constant-init", "t1", ["vector", 1, 4]]), ("f0", ["code", [], [], ["constant-ref", "t1"]])], ["let", [("f", ["closure", "f0"])], ["=", [Local("f")], [Local("f")]]]])
     #compiler.compile_function(["let*", [("a", 3), ("b", Local("a")), ("c", Local("a"))], Local("c")])
-    compiler.compile_function(['labels', [('f1', ['code', [], ['b'], [Free("b")]]), ('f2', ['code', [], [], 4])], ['letrec', [('a', ['closure', 'f1', Local("b")]), ('b', ['closure', 'f2'])], ['+', [Local("b")], [Local("b")]]]])
+    #compiler.compile_function(['labels', [('f1', ['code', [], ['b'], [Free("b")]]), ('f2', ['code', [], [], 4])], ['letrec', [('a', ['closure', 'f1', Local("b")]), ('b', ['closure', 'f2'])], ['+', [Local("b")], [Local("b")]]]])
+    compiler.compile_function(["labels", [("f1", ["code", ["n"], ["odd?"], ["if", ["=", 0, Bound("n")], True, [Free("odd?"), ["-", Bound("n"), 1]]]]), ("f2", ["code", ["n"], ["even?"], ["if", ["=", 0, Bound("n")], False, [Free("even?"), ["-", Bound("n"), 1]]]])], ["letrec", [("even?", ["closure", "f1", Local("odd?")]), ("odd?", ["closure", "f2", Local("even?")])], [Local("even?"), 88]]])
     print(compiler.code)
 

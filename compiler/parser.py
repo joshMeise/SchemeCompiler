@@ -966,4 +966,4 @@ if __name__ == "__main__":
     #print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(4 6))))) (= (f) (f)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"))
-    print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
+    print(scheme_parse("(letrec ((even? (lambda (n) (if (= 0 n) #t (odd? (- n 1))))) (odd? (lambda (n) (if (= 0 n) #f (even? (- n 1)))))) (even? 88))"))

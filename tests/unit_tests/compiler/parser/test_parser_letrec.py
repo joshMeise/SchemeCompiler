@@ -28,11 +28,11 @@ class LetrecParseTests(unittest.TestCase):
         """
         return scheme_parse(source)
 
-    #def test_letrec_simple(self):
+    def test_letrec_simple(self):
         """
-        Test (letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b))).
+        Test (letrec ((even? (lambda (n) (if (= 0 n) #t (odd? (- n 1))))) (odd? (lambda (n) (if (= 0 n) #f (even? (- n 1)))))) (even? 88)).
         """
-        #self.assertEqual(self._parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"), ["letrec", [("a", )
+        self.assertEqual(self._parse("(letrec ((even? (lambda (n) (if (= 0 n) #t (odd? (- n 1))))) (odd? (lambda (n) (if (= 0 n) #f (even? (- n 1)))))) (even? 88))"), ["labels", [("f1", ["code", ["n"], ["odd?"], ["if", ["=", 0, Bound("n")], True, [Free("odd?"), ["-", Bound("n"), 1]]]]), ("f2", ["code", ["n"], ["even?"], ["if", ["=", 0, Bound("n")], False, [Free("even?"), ["-", Bound("n"), 1]]]])], ["letrec", [("even?", ["closure", "f1", Local("odd?")]), ("odd?", ["closure", "f2", Local("even?")])], [Local("even?"), 88]]])
 
 if __name__ == '__main__':
     unittest.main()
