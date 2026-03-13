@@ -790,7 +790,7 @@ def convert_to_closure_helper(ast: list, labels, cur_count, new_ast = []) -> lis
             elif first == "quote":
                 labels[f"t{cur_count}"] = ["constant-init", rest[0]]
                 return ["constant-ref", f"t{cur_count}"]
-            elif first == "let" or first == "let*":
+            elif first == "let" or first == "let*" or first == "letrec":
                 ret_val = [first]
                 bindings = []
                 for element in rest[0]:
@@ -966,4 +966,4 @@ if __name__ == "__main__":
     #print(scheme_parse("(letrec ((a (lambda () (b))) (b (lambda () 4))) (+ (a) (b)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(4 6))))) (= (f) (f)))"))
     #print(scheme_parse("(let ((f (lambda () (quote #(1 4))))) (= (f) (f)))"))
-    print(scheme_parse("(letrec ((even? (lambda (n) (if (= 0 n) #t (odd? (- n 1))))) (odd? (lambda (n) (if (= 0 n) #f (even? (- n 1)))))) (even? 88))"))
+    print(scheme_parse("(letrec ((mod0 (lambda (n) (if (= n 0) #t (mod2 (- n 1))))) (mod1 (lambda (n) (if (= n 0) #f (mod0 (- n 1))))) (mod2 (lambda (n) (if (= n 0) #f (mod1 (- n 1)))))) (mod0 6))"))

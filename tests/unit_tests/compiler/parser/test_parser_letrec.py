@@ -32,7 +32,7 @@ class LetrecParseTests(unittest.TestCase):
         """
         Test (letrec ((even? (lambda (n) (if (= 0 n) #t (odd? (- n 1))))) (odd? (lambda (n) (if (= 0 n) #f (even? (- n 1)))))) (even? 88)).
         """
-        self.assertEqual(self._parse("(letrec ((even? (lambda (n) (if (= 0 n) #t (odd? (- n 1))))) (odd? (lambda (n) (if (= 0 n) #f (even? (- n 1)))))) (even? 88))"), ["labels", [("f1", ["code", ["n"], ["odd?"], ["if", ["=", 0, Bound("n")], True, [Free("odd?"), ["-", Bound("n"), 1]]]]), ("f2", ["code", ["n"], ["even?"], ["if", ["=", 0, Bound("n")], False, [Free("even?"), ["-", Bound("n"), 1]]]])], ["letrec", [("even?", ["closure", "f1", Local("odd?")]), ("odd?", ["closure", "f2", Local("even?")])], [Local("even?"), 88]]])
+        self.assertEqual(self._parse("(letrec ((even? (lambda (n) (if (= 0 n) #t (odd? (- n 1))))) (odd? (lambda (n) (if (= 0 n) #f (even? (- n 1)))))) (even? 88))"), ["labels", [("f0", ["code", ["n"], ["odd?"], ["if", ["=", 0, Bound("n")], True, [Free("odd?"), ["-", Bound("n"), 1]]]]), ("f1", ["code", ["n"], ["even?"], ["if", ["=", 0, Bound("n")], False, [Free("even?"), ["-", Bound("n"), 1]]]])], ["letrec", [("even?", ["closure", "f0", Local("odd?")]), ("odd?", ["closure", "f1", Local("even?")])], [Local("even?"), 88]]])
 
 if __name__ == '__main__':
     unittest.main()
